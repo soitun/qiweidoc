@@ -796,7 +796,8 @@ SQL;
             return [];
         }
 
-        if (empty($data["keyword"])) {
+        $keyword = trim((string) ($data["keyword"] ?? ""));
+        if ($keyword === "") {
             throw new LogicException('请输入查找内容');
         }
 
@@ -832,11 +833,13 @@ SQL;
             }
         }
 
-        Yii::db()->createCommand("SET pg_bigm.similarity_limit TO 0.1")->execute();
         $query = ChatMessageModel::query()
             ->where($where)
-            ->addSelect(new Expression("*,bigm_similarity(msg_content, '{$data['keyword']}') as similarity"))
-            ->andWhere(['=%', 'msg_content', $data["keyword"] ?? ""])
+            ->addSelect(new Expression(
+                "*, bigm_similarity(msg_content, :search_keyword) as similarity",
+                [':search_keyword' => $keyword],
+            ))
+            ->andWhere(['like', 'msg_content', $keyword])
             ->andWhere(['>', 'msg_time', $start_time])
             ->andWhere(['<', 'msg_time', $stop_time]);
 
