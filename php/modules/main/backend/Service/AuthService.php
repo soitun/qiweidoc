@@ -92,6 +92,17 @@ class AuthService
             ['userid' => $wechatUserInfo['userid']],
         ], $accountData);
 
+        // 首次登录时员工数据可能尚未同步；如果已经存在，则同步超级管理员角色
+        if ($userInfo->get('role_id') === EnumUserRoleType::SUPPER_ADMIN->value) {
+            StaffModel::query()->where([
+                'corp_id' => $userInfo->get('corp_id'),
+                'userid' => $userInfo->get('userid'),
+            ])->update([
+                'role_id' => $userInfo->get('role_id'),
+                'can_login' => $userInfo->get('can_login'),
+            ]);
+        }
+
         //如果不是游客账号，验证登陆权限
         $moduleConfig = Module::getLocalModuleConfig("user_permission");
         if ($userInfo->get("role_id") != EnumUserRoleType::VISITOR->value && isset($moduleConfig['paused']) && !($moduleConfig["paused"])) {

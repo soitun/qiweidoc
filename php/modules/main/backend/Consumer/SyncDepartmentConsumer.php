@@ -3,6 +3,7 @@
 
 namespace Modules\Main\Consumer;
 
+use Common\Yii;
 use Modules\Main\Enum\EnumUserRoleType;
 use Modules\Main\Model\ChatConversationsModel;
 use Modules\Main\Model\CorpModel;
@@ -90,14 +91,22 @@ class SyncDepartmentConsumer
             ])
             ->deleteAll();
 
-    //    同步完了，把当前企业的超管账户更新一下
-        $userInfo = UserModel::query()->where(["corp_id"=>$this->corp->get("id"),"role_id"=>EnumUserRoleType::SUPPER_ADMIN->value])->getOne();
-        if (!empty($userInfo)) {
-            StaffModel::query()->where(["corp_id"=>$this->corp->get("id"),"userid"=>$userInfo->get("userid")])->update([
-                "role_id"=>$userInfo->get("role_id")->value ?? EnumUserRoleType::NORMAL_STAFF->value,
-                "can_login"=>$userInfo->get("can_login")
-            ]);
-        }
+        // 同步完成后，以登录用户表为准，对账员工角色和登录权限
+        $sql = /** @lang sql */ <<<SQL
+UPDATE main.staff AS staff
+SET role_id = users.role_id,
+    can_login = users.can_login,
+    updated_at = NOW()
+FROM main.users AS users
+WHERE staff.corp_id = users.corp_id
+  AND staff.userid = users.userid
+  AND staff.corp_id = :corp_id
+  AND (
+      staff.role_id IS DISTINCT FROM users.role_id
+      OR staff.can_login IS DISTINCT FROM users.can_login
+  )
+SQL;
+        Yii::db()->createCommand($sql, [':corp_id' => $this->corp->get('id')])->execute();
 
     }
 
@@ -145,9 +154,10 @@ class SyncDepartmentConsumer
             $whereData = ['corp_id' => $this->corp->get('id'),'userid' => $userInfo['userid']];
             $hisData = StaffModel::query()->where($whereData)->getOne();
             if (empty($hisData)) {
-                //同步新增的账户，没有登陆权限，普通员工角色
-                $updateData["can_login"] = 0;
-                $updateData["role_id"] = EnumUserRoleType::NORMAL_STAFF->value;
+                // 已登录账号优先继承用户表角色，否则按普通员工初始化
+                $loginUser = UserModel::query()->where($whereData)->getOne();
+                $updateData["can_login"] = $loginUser?->get('can_login') ?? 0;
+                $updateData["role_id"] = $loginUser?->get('role_id') ?? EnumUserRoleType::NORMAL_STAFF->value;
                 StaffModel::create($updateData);
             } else {
                 StaffModel::query()->where($whereData)->update($updateData);
