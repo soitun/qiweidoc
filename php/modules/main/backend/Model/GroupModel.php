@@ -10,6 +10,13 @@ use Throwable;
 
 class GroupModel extends BaseModel
 {
+    // 群类型：客户群
+    public const GROUP_TYPE_CUSTOMER = 1;
+    // 群类型：内部群
+    public const GROUP_TYPE_INTERNAL = 2;
+    // 群类型：非企业客户群
+    public const GROUP_TYPE_NON_ENTERPRISE = 3;
+
     public function getTableName(): string
     {
         return "main.groups";
@@ -27,6 +34,7 @@ class GroupModel extends BaseModel
             "owner" => 'string',
             "member_version" => 'string',
             "group_status" => 'int',
+            "group_type" => 'int',
             "group_create_time" => 'string',
             "staff_num" => 'int',
             "cst_num" => 'int',
@@ -87,6 +95,79 @@ class GroupModel extends BaseModel
             "staff_num" => $staffUserNum,
             "cst_num" => $cstUserNum,
             "total_member" => $staffUserNum + $cstUserNum,
+            "group_type" => self::GROUP_TYPE_CUSTOMER,
         ]);
+    }
+
+    /**
+     * 群聊消息拉取时，确保群信息存在（不存在时查询企微内部群接口补全）
+     *
+     * @throws Throwable
+     */
+    public static function ensureGroupExists(CorpModel $corp, string $chatId): void
+    {
+        $group = self::query()
+            ->where(['and',
+                ['corp_id' => $corp->get('id')],
+                ['chat_id' => $chatId],
+            ])
+            ->getOne();
+        if (!empty($group)) {
+            return;
+        }
+
+        $isInternal = false;
+        $groupName = '';
+        $owner = '';
+        $createTime = 0;
+        $members = [];
+        try {
+            $res = $corp->postWechatApi('/cgi-bin/msgaudit/groupchat/get', ['roomid' => $chatId], 'json', CorpModel::SecretTypeChat);
+            $isInternal = true;
+            $groupName = $res['roomname'] ?? '';
+            $owner = $res['creator'] ?? '';
+            $createTime = $res['room_create_time'] ?? 0;
+            $members = $res['members'] ?? [];
+        } catch (Throwable) {
+            // 非内部群或接口调用失败，按非企业客户群处理
+        }
+
+        if ($isInternal) {
+            // 内部群接口的 members 为 [{memberid, jointime}]，转换为 member_list 结构（内部群成员均为企业员工 type=1）
+            $memberList = [];
+            foreach ($members as $member) {
+                $memberList[] = [
+                    'type' => 1,
+                    'userid' => $member['memberid'] ?? '',
+                    'join_time' => $member['jointime'] ?? 0,
+                ];
+            }
+
+            self::updateOrCreate(['and',
+                ['corp_id' => $corp->get('id')],
+                ['chat_id' => $chatId],
+            ], [
+                'corp_id' => $corp->get('id'),
+                'chat_id' => $chatId,
+                'name' => $groupName,
+                'owner' => $owner,
+                'group_create_time' => date('Y-m-d H:i:s', $createTime),
+                'member_list' => $memberList,
+                'staff_num' => count($memberList),
+                'cst_num' => 0,
+                'total_member' => count($memberList),
+                'group_type' => self::GROUP_TYPE_INTERNAL,
+            ]);
+        } else {
+            self::updateOrCreate(['and',
+                ['corp_id' => $corp->get('id')],
+                ['chat_id' => $chatId],
+            ], [
+                'corp_id' => $corp->get('id'),
+                'chat_id' => $chatId,
+                'name' => '非企业客户群',
+                'group_type' => self::GROUP_TYPE_NON_ENTERPRISE,
+            ]);
+        }
     }
 }

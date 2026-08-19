@@ -35,8 +35,11 @@ class SyncGroupConsumer
             "limit" => $limit,
         ];
 
-        //所有群状态变更为更新中
-        GroupModel::query()->where(['corp_id' => $this->corp->get('id')])->update(['group_status' => 10]);
+        //所有客户群状态变更为更新中（内部群/非企业客户群由其他业务写入，不参与本次同步）
+        GroupModel::query()->where(['and',
+            ['corp_id' => $this->corp->get('id')],
+            ['group_type' => GroupModel::GROUP_TYPE_CUSTOMER],
+        ])->update(['group_status' => 10]);
 
         while (true) {
             if (!empty($cursor)) {
@@ -129,6 +132,7 @@ class SyncGroupConsumer
                     "staff_num" => $staffUserNum,
                     "cst_num" => $cstUserNum,
                     "total_member" => $staffUserNum + $cstUserNum,
+                    "group_type" => GroupModel::GROUP_TYPE_CUSTOMER,
                 ]);
 
                 // 从会话数据中查找该群有没有会话记录
@@ -150,11 +154,12 @@ class SyncGroupConsumer
         }
 
 
-        //更新中的数据删掉
+        //更新中的数据删掉（仅删除客户群，避免误删内部群/非企业客户群等其他业务写入的数据）
         GroupModel::query()
             ->where(['and',
                 ['corp_id' => $this->corp->get('id')],
                 ['group_status' => 10],
+                ['group_type' => GroupModel::GROUP_TYPE_CUSTOMER],
             ])
             ->deleteAll();
 

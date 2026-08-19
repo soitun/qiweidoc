@@ -280,6 +280,9 @@ class ChatSessionPullService
         if (!empty($messageData->get('roomid'))) {
             $type = EnumChatConversationType::Group;
             $idList[] = $messageData->get('roomid');
+
+            // 群聊消息：确保群信息已写入（不存在则查询企微内部群接口补全）
+            GroupModel::ensureGroupExists(self::$corp, $messageData->get('roomid'));
         } else {
             if (self::checkIsExternal($messageData->get('from'), $messageData->get('to_list')[0])) {
                 $type = EnumChatConversationType::Single;
