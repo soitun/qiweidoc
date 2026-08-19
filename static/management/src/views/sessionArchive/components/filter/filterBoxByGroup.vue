@@ -1,20 +1,7 @@
 <template>
     <div class="zm-filter-box">
         <div class="zm-filter-item">
-            <span class="zm-filter-label">群类型：</span>
-            <div class="filter-item-content">
-                <a-select
-                    v-model:value="filterData.group_type"
-                    @change="search"
-                    style="width: 160px"
-                    size="small">
-                    <a-select-option value="">全部</a-select-option>
-                    <a-select-option value="1">客户群</a-select-option>
-                    <a-select-option value="2">内部群</a-select-option>
-                    <a-select-option value="3">非企业客户群</a-select-option>
-                    <a-select-option value="unremarked_non_enterprise">未备注非企业客户群</a-select-option>
-                </a-select>
-            </div>
+            <GroupTypeFilter v-model:value="filterData.group_type" @change="search"/>
         </div>
         <div class="zm-filter-item">
             <span class="zm-filter-label">群聊名称：</span>
@@ -31,7 +18,8 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {reactive} from 'vue';
+import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 
 const emit = defineEmits(['change'])
 const filterData = reactive({
@@ -57,6 +45,11 @@ const search = () => {
     .zm-filter-item {
         margin-bottom: 12px;
         margin-left: 16px;
+
+        &:first-child {
+            width: 360px;
+            min-width: 200px;
+        }
     }
 }
 

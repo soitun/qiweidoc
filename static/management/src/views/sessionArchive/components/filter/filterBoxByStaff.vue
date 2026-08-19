@@ -3,20 +3,8 @@
          class="filter-box"
     >
         <div class="left-block">
-            <div v-if="type === 'GROUP'" class="filter-item">
-                <span class="filter-item-label">群类型：</span>
-                <div class="filter-item-content">
-                    <a-select
-                        v-model:value="filterData.group_type"
-                        @change="change"
-                        size="small">
-                        <a-select-option value="">全部</a-select-option>
-                        <a-select-option value="1">客户群</a-select-option>
-                        <a-select-option value="2">内部群</a-select-option>
-                        <a-select-option value="3">非企业客户群</a-select-option>
-                        <a-select-option value="unremarked_non_enterprise">未备注非企业客户群</a-select-option>
-                    </a-select>
-                </div>
+            <div v-if="type === 'GROUP'" class="filter-item group-type-item">
+                <GroupTypeFilter v-model:value="filterData.group_type" @change="change"/>
             </div>
             <div v-if="type === 'CUSTOMER'" class="filter-item">
                 <span class="filter-item-label">客户标签：</span>
@@ -62,9 +50,9 @@
 
 <script setup>
 import {ref, reactive, computed} from 'vue';
-import {UpOutlined, DownOutlined} from '@ant-design/icons-vue';
 import ShowSettingModal from "@/views/sessionArchive/components/modules/childs/showSettingModal.vue";
 import SelectTagModal from "@/components/select-customer-tag/selectTagModal.vue";
+import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 
 const props = defineProps({
     type: {
@@ -195,6 +183,11 @@ const filterTagChange = ({tagKeys, tags}) => {
             > div {
                 width: 100%;
             }
+        }
+
+        &.group-type-item {
+            width: 360px;
+            min-width: 200px;
         }
     }
 

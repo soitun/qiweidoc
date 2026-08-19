@@ -49,9 +49,12 @@ class GroupService
             $toWhere .= " and c.created_at between '{$data['start_time']}' and '{$data['stop_time']}' ";
         }
 
-        //有过会话记录的
+        // 会话场景：查询全部群聊类型（含内部群、非企业客户群）
         if (!empty($data['has_conversation'])) {
             $toWhere .= " and c.has_conversation=true ";
+        } else {
+            // 单纯查询客户群列表：只查询客户群
+            $toWhere .= " and c.group_type = " . GroupModel::GROUP_TYPE_CUSTOMER . " ";
         }
 
         // 群类型筛选
