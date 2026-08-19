@@ -54,6 +54,13 @@ class GroupService
             $toWhere .= " and c.has_conversation=true ";
         }
 
+        // 群类型筛选
+        if (in_array($data['group_type'] ?? '', ['1', '2', '3'], true)) {
+            $toWhere .= " and c.group_type = {$data['group_type']} ";
+        } elseif (($data['group_type'] ?? '') === 'unremarked_non_enterprise') {
+            $toWhere .= " and c.group_type = 3 and coalesce(c.remark_name, '') = '' ";
+        }
+
         // 排序条件
         $order_by = "group_create_time";
         if (isset($data["order_by"])) {

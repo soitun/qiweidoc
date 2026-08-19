@@ -3,6 +3,21 @@
          class="filter-box"
     >
         <div class="left-block">
+            <div v-if="type === 'GROUP'" class="filter-item">
+                <span class="filter-item-label">群类型：</span>
+                <div class="filter-item-content">
+                    <a-select
+                        v-model:value="filterData.group_type"
+                        @change="change"
+                        size="small">
+                        <a-select-option value="">全部</a-select-option>
+                        <a-select-option value="1">客户群</a-select-option>
+                        <a-select-option value="2">内部群</a-select-option>
+                        <a-select-option value="3">非企业客户群</a-select-option>
+                        <a-select-option value="unremarked_non_enterprise">未备注非企业客户群</a-select-option>
+                    </a-select>
+                </div>
+            </div>
             <div v-if="type === 'CUSTOMER'" class="filter-item">
                 <span class="filter-item-label">客户标签：</span>
                 <div class="filter-item-content">
@@ -62,6 +77,7 @@ const settingRef = ref(null)
 const cstTagRef = ref(null)
 const filterData = reactive({
     keyword: '',
+    group_type: '',
     tags: [],
     tag_ids: [],
 })

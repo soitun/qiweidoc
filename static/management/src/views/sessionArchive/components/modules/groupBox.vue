@@ -73,6 +73,9 @@ const loadData = () => {
     if (props.filterData?.keyword) {
         params.keyword = props.filterData.keyword
     }
+    if (props.filterData?.group_type) {
+        params.group_type = props.filterData.group_type
+    }
     groupsList(params).then(res => {
         let data = res.data || {}
         let {items, total} = data

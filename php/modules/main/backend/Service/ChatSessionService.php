@@ -336,6 +336,12 @@ SQL;
         if (!empty($search['keyword'])) {
             $query->andWhere(['ilike', 'name', $search['keyword']]);
         }
+        if (in_array($search['group_type'] ?? '', ['1', '2', '3'], true)) {
+            $query->andWhere(['group_type' => (int) $search['group_type']]);
+        } elseif (($search['group_type'] ?? '') === 'unremarked_non_enterprise') {
+            $query->andWhere(['group_type' => GroupModel::GROUP_TYPE_NON_ENTERPRISE])
+                ->andWhere(new Expression("coalesce(remark_name, '') = ''"));
+        }
         $groupList = $query->getAll();
         $groupChatIDMap = array_column($groupList->toArray(), null, 'chat_id');
 
