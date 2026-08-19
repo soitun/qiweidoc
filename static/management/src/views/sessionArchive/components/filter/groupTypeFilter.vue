@@ -7,7 +7,7 @@
                 :class="['quick-option', {active: value === option.value}]"
                 type="button"
                 @click="select(option.value)">
-                {{ option.label }}
+                {{ option.label }}<span v-if="option.pay" class="zm-group-type-pay-tag">付费</span>
             </button>
         </div>
         <a-dropdown
@@ -29,7 +29,7 @@
                         :class="['menu-option', {active: value === option.value}]"
                         type="button"
                         @click="select(option.value)">
-                        <span>{{ option.label }}</span>
+                        <span>{{ option.label }}<span v-if="option.pay" class="zm-group-type-pay-tag">付费</span></span>
                         <CheckOutlined v-if="value === option.value"/>
                     </button>
                 </div>
@@ -54,9 +54,9 @@ const dropdownOpen = ref(false)
 const options = [
     {value: '', label: '全部'},
     {value: '1', label: '客户群'},
-    {value: 'unremarked_non_enterprise', label: '未备注群聊'},
-    {value: '2', label: '内部群'},
-    {value: '3', label: '非企业客户群'},
+    {value: '2', label: '内部群', pay: true},
+    {value: '3', label: '非企业客户群', pay: true},
+    {value: 'unremarked_non_enterprise', label: '未备注非企业客户群', pay: true},
 ]
 
 const select = value => {
@@ -126,6 +126,20 @@ const select = value => {
             background: #e5efff;
         }
     }
+}
+
+/* 付费标记：下拉菜单通过 teleport 渲染到 body，需用全局样式保证快捷选项与下拉菜单一致 */
+:global(.zm-group-type-pay-tag) {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 1px 4px;
+    border-radius: 4px;
+    background: #ED744A;
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 16px;
+    vertical-align: middle;
 }
 
 :global(.session-group-type-dropdown .ant-dropdown-menu) {

@@ -62,6 +62,9 @@
                             <a-tab-pane key="STAFF" :tab="`员工(${main.contactStaffCount})`"></a-tab-pane>
                             <a-tab-pane key="GROUP" :tab="`群聊(${main.contactGroupCount})`"></a-tab-pane>
                         </a-tabs>
+                        <div v-show="main.contactType === 'GROUP'" class="group-type-filter-wrapper">
+                            <GroupTypeFilter v-model:value="groupType" @change="groupTypeChange"/>
+                        </div>
                         <ContactColleague
                             v-show="main.contactType === 'STAFF'"
                             @change="val => contactChange(val, 'STAFF')"
@@ -93,7 +96,7 @@
                             :filterData="filterData"
                             :default="defaultParams"
                             :key="contactCompKey * 200"
-                            class="main-content-box"
+                            class="main-content-box group-filter-list"
                         />
                     </DragStretchBox>
                     <ChatBox ref="chatRef"
@@ -128,6 +131,7 @@ import ContactCustomer from "@/views/sessionArchive/components/contacts/customer
 import ContactGroup from "@/views/sessionArchive/components/contacts/group.vue";
 import DragStretchBox from "@/components/dragStretchBox.vue";
 import FilterBoxByStaff from "@/views/sessionArchive/components/filter/filterBoxByStaff.vue";
+import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 import LoadingBox from "@/components/loadingBox.vue";
 import SetSessionStaffModal from "@/views/sessionArchive/components/modules/setSessionStaffModal.vue";
 
@@ -157,7 +161,8 @@ const main = reactive({
 })
 const chatRef = ref(null)
 const setStfModalRef = ref(null)
-const filterData = ref(null)
+const groupType = ref('')
+const filterData = ref({keyword: '', group_type: '', tags: [], tag_ids: []})
 const loading = ref(null)
 const defaultStaff = ref(null)
 const archiveStfTotal = ref(0)
@@ -337,7 +342,17 @@ const getShowSettings = () => {
 }
 
 const search = val => {
-    filterData.value = val
+    filterData.value = {...val, group_type: groupType.value}
+    reloadContacts()
+}
+
+const groupTypeChange = val => {
+    groupType.value = val
+    filterData.value = {...filterData.value, group_type: val}
+    reloadContacts()
+}
+
+const reloadContacts = () => {
     main.contactStaff = null
     main.contactCustomer = null
     main.contactGroup = null
@@ -487,6 +502,14 @@ const linkPlugHome = () => {
 
             .center-block {
                 border-right: 1px solid rgba(5, 5, 5, 0.06);
+
+                .group-type-filter-wrapper {
+                    height: 41px;
+                    padding: 0 16px;
+                    display: flex;
+                    align-items: center;
+                    border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+                }
             }
 
             .right-block {
@@ -497,6 +520,10 @@ const linkPlugHome = () => {
 
     .main-content-box {
         height: calc(100% - 42px);
+    }
+
+    .main-content-box.group-filter-list {
+        height: calc(100% - 83px);
     }
 }
 </style>

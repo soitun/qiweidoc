@@ -3,9 +3,6 @@
          class="filter-box"
     >
         <div class="left-block">
-            <div v-if="type === 'GROUP'" class="filter-item group-type-item">
-                <GroupTypeFilter v-model:value="filterData.group_type" @change="change"/>
-            </div>
             <div v-if="type === 'CUSTOMER'" class="filter-item">
                 <span class="filter-item-label">客户标签：</span>
                 <div class="filter-item-content">
@@ -52,7 +49,6 @@
 import {ref, reactive, computed} from 'vue';
 import ShowSettingModal from "@/views/sessionArchive/components/modules/childs/showSettingModal.vue";
 import SelectTagModal from "@/components/select-customer-tag/selectTagModal.vue";
-import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 
 const props = defineProps({
     type: {
@@ -65,7 +61,6 @@ const settingRef = ref(null)
 const cstTagRef = ref(null)
 const filterData = reactive({
     keyword: '',
-    group_type: '',
     tags: [],
     tag_ids: [],
 })
@@ -183,11 +178,6 @@ const filterTagChange = ({tagKeys, tags}) => {
             > div {
                 width: 100%;
             }
-        }
-
-        &.group-type-item {
-            width: 360px;
-            min-width: 200px;
         }
     }
 

@@ -1,9 +1,6 @@
 <template>
     <div class="zm-filter-box">
         <div class="zm-filter-item">
-            <GroupTypeFilter v-model:value="filterData.group_type" @change="search"/>
-        </div>
-        <div class="zm-filter-item">
             <span class="zm-filter-label">群聊名称：</span>
             <div class="filter-item-content">
                 <a-input-search
@@ -19,12 +16,10 @@
 
 <script setup>
 import {reactive} from 'vue';
-import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 
 const emit = defineEmits(['change'])
 const filterData = reactive({
     keyword: '',
-    group_type: '',
 })
 
 const search = () => {
@@ -35,8 +30,7 @@ const search = () => {
 
 <style scoped lang="less">
 .zm-filter-box {
-    padding-top: 8px;
-    padding-right: 60px;
+    padding: 8px 60px 0 16px;
     flex-wrap: wrap;
     height: 41px;
     overflow: hidden;
@@ -44,17 +38,11 @@ const search = () => {
 
     .zm-filter-item {
         margin-bottom: 12px;
-        margin-left: 16px;
 
-        &:first-child {
-            width: 360px;
-            min-width: 200px;
+        .filter-item-content {
+            width: 192px;
+            flex-shrink: 0;
         }
     }
-}
-
-.show-date-time {
-    cursor: pointer;
-    color: #164799;
 }
 </style>
