@@ -24,6 +24,7 @@
                      class="session-right-block"
                      :chatInfo="chatInfo"
                      @changeCollect="onChangeCollect"
+                     @remarkChange="onRemarkChange"
                      sessionType="group"
                      :defaultParams="defaultParams"/>
         </div>
@@ -67,7 +68,9 @@ const chatInfo = computed(() => {
         },
         receiver: {
             name: main.selectedGroup?.name,
-            chat_id: main.selectedContact?.chat_id,
+            remark_name: main.selectedGroup?.remark_name,
+            group_type: main.selectedGroup?.group_type,
+            chat_id: main.selectedGroup?.chat_id,
             zm_user_type: 'GROUP'
         }
     }
@@ -102,6 +105,12 @@ const onChangeCollect = (obj) => {
     main.selectedGroup.conversations_id = obj.conversation_id
     main.selectedGroup.is_collect = obj.is_collect
     main.selectedGroup.collect_reason = obj.collect_reason
+}
+
+const onRemarkChange = (obj) => {
+    if (main.selectedGroup && obj?.chat_id === main.selectedGroup.chat_id) {
+        main.selectedGroup.remark_name = obj.remark_name
+    }
 }
 </script>
 

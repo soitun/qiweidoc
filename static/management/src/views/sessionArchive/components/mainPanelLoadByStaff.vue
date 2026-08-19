@@ -102,6 +102,7 @@
                              :chatInfo="chatInfo"
                              :currentMsgCancelCollect="currentMsgCancelCollect"
                              @changeCollect="onChangeCollect"
+                             @remarkChange="onRemarkChange"
                              :sessionType="main.contactType === 'GROUP' ? 'group' : 'session'"
                              :defaultParams="defaultParams"/>
                 </div>
@@ -219,6 +220,8 @@ const chatInfo = computed(() => {
         case 'GROUP':
             receiver = {
                 name: currentContact.value.name,
+                remark_name: currentContact.value.remark_name,
+                group_type: currentContact.value.group_type,
                 chat_id: currentContact.value.chat_id,
             }
             params = {
@@ -264,6 +267,12 @@ const onChangeCollect = (obj) => {
     currentContact.value.id = obj.conversation_id
     currentContact.value.is_collect = obj.is_collect
     currentContact.value.collect_reason = obj.collect_reason
+}
+
+const onRemarkChange = (obj) => {
+    if (main.contactGroup && obj?.chat_id === main.contactGroup.chat_id) {
+        main.contactGroup.remark_name = obj.remark_name
+    }
 }
 
 const onCancelCollect = (val) => {

@@ -11,7 +11,9 @@
                                 :currentMsgCancelCollect="currentMsgCancelCollect"
                                 :chatInfo="chatInfo"
                                 class="mr8"/>
-                            {{ props.chatInfo?.receiver.name || '未命名群聊' }}
+                            <span class="group-name" :title="groupDisplayName">{{ groupDisplayName }}</span>
+                            <span v-if="isInternalGroup" class="internal-tag">@内部群</span>
+                            <EditOutlined class="edit-icon" @click="openRemarkModal"/>
                         </template>
                         <template v-else-if="chatInfo?.sender && chatInfo?.receiver">
                             <ChatCollection
@@ -128,6 +130,24 @@
             </template>
         </ZmScroll>
 
+        <!-- 编辑群备注名弹窗 -->
+        <a-modal
+            v-model:open="remarkModalVisible"
+            title="编辑群备注名"
+            :confirm-loading="remarkSaving"
+            ok-text="保存"
+            cancel-text="取消"
+            @ok="saveRemarkName">
+            <div class="remark-modal">
+                <a-input
+                    v-model:value="remarkName"
+                    placeholder="请输入群聊备注名"
+                    :maxlength="255"
+                    allow-clear
+                    @pressEnter="saveRemarkName"/>
+            </div>
+        </a-modal>
+
         <lookVideo ref="lookVideoRef"></lookVideo>
 
         <!-- 导出成功弹窗 -->
@@ -159,18 +179,19 @@ import {onMounted, ref, reactive, nextTick, computed} from 'vue';
 import {useStore} from 'vuex';
 import {useRouter} from 'vue-router';
 import dayjs from 'dayjs';
-import {DownloadOutlined} from '@ant-design/icons-vue';
+import {DownloadOutlined, EditOutlined} from '@ant-design/icons-vue';
 import ZmScroll from "@/components/zmScroll.vue";
 import ChatUser from "@/views/sessionArchive/components/modules/childs/chatUser.vue";
 import ChatCollection from './childs/chatCollection.vue';
 import MessageRender from "@/components/session-message/messageRender.vue";
 import lookVideo from "@/components/common/look-video.vue";
 import {groupMessage, sessionMessage, exportChatMessage} from "@/api/session";
+import {groupsSaveRemarkName} from "@/api/company";
 import {VoicePlayHandle} from "@/utils/voicePlay";
 import StaffPaymentTag from "@/views/sessionArchive/components/modules/staffPaymentTag.vue";
 import {message} from 'ant-design-vue';
 
-const emit = defineEmits('changeCollect')
+const emit = defineEmits(['changeCollect', 'remarkChange'])
 const defaultAvatar = require('@/assets/default-avatar.png')
 const props = defineProps({
     mainTab: {
@@ -255,6 +276,51 @@ const getMessageListStyle = computed(() => {
     }
     return style
 })
+
+// 群聊展示名称：有备注名优先展示备注名，否则展示群名称
+const groupDisplayName = computed(() => {
+    return props.chatInfo?.receiver?.remark_name || props.chatInfo?.receiver?.name || '未命名群聊'
+})
+
+// 是否为内部群
+const isInternalGroup = computed(() => {
+    return Number(props.chatInfo?.receiver?.group_type) === 2
+})
+
+// 编辑群备注名相关
+const remarkModalVisible = ref(false)
+const remarkSaving = ref(false)
+const remarkName = ref('')
+
+const openRemarkModal = () => {
+    remarkName.value = props.chatInfo?.receiver?.remark_name || ''
+    remarkModalVisible.value = true
+}
+
+const saveRemarkName = async () => {
+    const chatId = props.chatInfo?.params?.group_chat_id || props.chatInfo?.receiver?.chat_id
+    if (!chatId) {
+        message.warning('缺少群聊信息')
+        return
+    }
+    remarkSaving.value = true
+    try {
+        await groupsSaveRemarkName({
+            chat_id: chatId,
+            remark_name: remarkName.value.trim(),
+        })
+        message.success('备注名已保存')
+        remarkModalVisible.value = false
+        emit('remarkChange', {
+            chat_id: chatId,
+            remark_name: remarkName.value.trim(),
+        })
+    } catch (e) {
+        console.error('保存备注名失败:', e)
+    } finally {
+        remarkSaving.value = false
+    }
+}
 
 const init = () => {
     pagination.current = 1
@@ -466,6 +532,38 @@ const handleGoToDownload = () => {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            .group-name {
+                overflow: hidden;
+                text-overflow: ellipsis;
+                white-space: nowrap;
+            }
+
+            .internal-tag {
+                flex-shrink: 0;
+                display: inline-block;
+                margin-left: 6px;
+                padding: 0 4px;
+                font-size: 10px;
+                line-height: 16px;
+                color: #2475FC;
+                background: #E5EFFF;
+                border-radius: 3px;
+                vertical-align: middle;
+            }
+
+            .edit-icon {
+                flex-shrink: 0;
+                margin-left: 8px;
+                font-size: 13px;
+                color: #8C8C8C;
+                cursor: pointer;
+                transition: color 0.3s ease;
+
+                &:hover {
+                    color: #1890ff;
+                }
+            }
         }
 
         .icon {
@@ -631,6 +729,10 @@ const handleGoToDownload = () => {
 
 .chat-box-tooltip-min .ant-tooltip-inner {
     width: 100%;
+}
+
+.remark-modal {
+    padding: 8px 0;
 }
 
 // 导出成功弹窗样式

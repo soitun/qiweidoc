@@ -14,10 +14,13 @@
                 <img class="avatar" src="@/assets/default-group-avatar.png"/>
             </div>
             <div class="right">
-                <div class="flex-between" :title="item.name">
+                <div class="flex-between" :title="groupDisplayName(item)">
                     <div class="userinfo">
                         <span v-if="item.is_new_user == 1" class="is-new-tag">新</span>
-                        <div class="user-name">{{ item.name || '未命名群聊' }}</div>
+                        <div class="user-name">
+                            {{ groupDisplayName(item) }}
+                            <span v-if="isInternalGroup(item)" class="internal-tag">@内部群</span>
+                        </div>
                     </div>
                 </div>
                 <div class="flex-between">
@@ -165,6 +168,16 @@ const isSelected = item => {
     return selected.value && item?.chat_id === selected.value?.chat_id
 }
 
+// 群聊展示名称：有备注名优先展示备注名，否则展示群名称
+const groupDisplayName = item => {
+    return item?.remark_name || item?.name || '未命名群聊'
+}
+
+// 是否为内部群
+const isInternalGroup = item => {
+    return Number(item?.group_type) === 2
+}
+
 const change = (item) => {
     if (isSelected(item)) {
         return
@@ -175,5 +188,15 @@ const change = (item) => {
 </script>
 
 <style scoped lang="less">
-
+.internal-tag {
+    display: inline-block;
+    margin-left: 4px;
+    padding: 0 4px;
+    font-size: 10px;
+    line-height: 16px;
+    color: #2475FC;
+    background: #E5EFFF;
+    border-radius: 3px;
+    vertical-align: middle;
+}
 </style>

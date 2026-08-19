@@ -52,6 +52,10 @@ export const groupsList = (data) => {
     return request.get('/api/groups/list', {params: data})
 }
 
+export const groupsSaveRemarkName = (data) => {
+    return request.put('/api/groups/remark-name', data)
+}
+
 export const groupsSync = (data) => {
     return request.get('/api/groups/sync', {params: data})
 }

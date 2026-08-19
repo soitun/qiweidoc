@@ -5,8 +5,10 @@ namespace Modules\Main\Service;
 
 use Common\DB\BaseModel;
 use Common\Yii;
+use LogicException;
 use Modules\Main\Enum\EnumChatConversationType;
 use Modules\Main\Model\CorpModel;
+use Modules\Main\Model\GroupModel;
 use Throwable;
 use Yiisoft\Arrays\ArrayHelper;
 
@@ -104,5 +106,34 @@ SQL;
 
 
         return $res;
+    }
+
+    /**
+     * 保存群聊备注名
+     *
+     * @param CorpModel $corp
+     * @param string $chatId
+     * @param string $remarkName
+     * @return void
+     * @throws Throwable
+     */
+    public static function saveRemarkName(CorpModel $corp, string $chatId, string $remarkName): void
+    {
+        if (empty($chatId)) {
+            throw new LogicException("群聊id不能为空");
+        }
+
+        $group = GroupModel::query()
+            ->where(['and',
+                ['corp_id' => $corp->get('id')],
+                ['chat_id' => $chatId],
+            ])
+            ->getOne();
+
+        if (empty($group)) {
+            throw new LogicException("群聊不存在");
+        }
+
+        $group->update(['remark_name' => $remarkName]);
     }
 }

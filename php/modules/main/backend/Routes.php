@@ -232,6 +232,7 @@ class Routes extends RouterProvider
                     // 群相关的接口
                     Route::get("/groups/sync")->action([GroupController::class, "sync"])->defaults(["permission_key" => 'main.corp_group.sync','filter_status'=>true]),
                     Route::get("/groups/list")->action([GroupController::class, "list"]),
+                    Route::put("/groups/remark-name")->action([GroupController::class, "saveRemarkName"]),
 
                     // 客户相关的接口
                     Route::get("/customers/sync")->action([CustomersController::class, "sync"])->defaults(["permission_key" => 'main.customer_manager.list','filter_status'=>true]),

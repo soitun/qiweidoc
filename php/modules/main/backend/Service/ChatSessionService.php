@@ -330,7 +330,7 @@ SQL;
         // 先查找这个员工所在的所有群聊
         $table = (new GroupModel)->getTableName();
         $subSql = "EXISTS (SELECT 1 FROM jsonb_array_elements({$table}.member_list) as members where members->>'userid' = '{$staffUserId}')";
-        $query = GroupModel::query()->select(['chat_id', 'name', 'owner'])
+        $query = GroupModel::query()->select(['chat_id', 'name', 'remark_name', 'group_type', 'owner'])
             ->where(['corp_id' => $corp->get('id')])
             ->andWhere(new Expression($subSql));
         if (!empty($search['keyword'])) {
@@ -353,6 +353,8 @@ SQL;
         foreach ($result['items'] as $item) {
             $groupData = $groupChatIDMap[$item->get('chat_id')] ?? [];
             $item->append('name', $groupData['name'] ?? '');
+            $item->append('remark_name', $groupData['remark_name'] ?? '');
+            $item->append('group_type', $groupData['group_type'] ?? 0);
             $item->append('owner', $groupData['owner'] ?? '');
             $item->append('is_collect', $item->get('is_collect')->value ?? 0);
 

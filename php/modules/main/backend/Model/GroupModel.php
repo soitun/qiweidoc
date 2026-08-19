@@ -31,6 +31,7 @@ class GroupModel extends BaseModel
             "corp_id" => 'string',
             "chat_id" => 'string',
             "name" => 'string',
+            "remark_name" => 'string',
             "owner" => 'string',
             "member_version" => 'string',
             "group_status" => 'int',
