@@ -1,11 +1,13 @@
 <template>
     <div class="group-type-filter">
-        <div class="quick-options">
+        <div ref="quickOptionsRef" class="quick-options">
             <button
                 v-for="option in options"
                 :key="option.value"
+                :ref="element => setOptionRef(option.value, element)"
                 :class="['quick-option', {active: value === option.value}]"
                 type="button"
+                :aria-pressed="value === option.value"
                 @click="select(option.value)">
                 {{ option.label }}<span v-if="option.pay" class="zm-group-type-pay-tag">付费</span>
             </button>
@@ -39,7 +41,7 @@
 </template>
 
 <script setup>
-import {computed, ref} from 'vue';
+import {computed, nextTick, ref, watch} from 'vue';
 import {useRouter} from 'vue-router';
 import {useStore} from 'vuex';
 import {Modal} from 'ant-design-vue';
@@ -54,6 +56,8 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:value', 'change'])
 const dropdownOpen = ref(false)
+const quickOptionsRef = ref(null)
+const optionRefs = new Map()
 const router = useRouter()
 const store = useStore()
 
@@ -64,8 +68,46 @@ const options = [
     {value: '1', label: '客户群'},
     {value: '2', label: '内部群', pay: true},
     {value: '3', label: '非企业客户群', pay: true},
-    {value: 'unremarked_non_enterprise', label: '未备注非企业客户群', pay: true},
+    {value: 'unremarked_non_enterprise', label: '非企业客户群', pay: true},
 ]
+
+const setOptionRef = (value, element) => {
+    if (element) {
+        optionRefs.set(value, element)
+    } else {
+        optionRefs.delete(value)
+    }
+}
+
+// 让选中项尽量位于可视区域中间，以便同时看到它左右相邻的筛选项。
+const scrollToSelected = (value, behavior = 'smooth') => {
+    const container = quickOptionsRef.value
+    const selected = optionRefs.get(value)
+    if (!container || !selected) {
+        return
+    }
+
+    const containerRect = container.getBoundingClientRect()
+    const selectedRect = selected.getBoundingClientRect()
+    const selectedCenterOffset = selectedRect.left - containerRect.left
+        + selectedRect.width / 2
+    const maxScrollLeft = container.scrollWidth - container.clientWidth
+    const scrollLeft = container.scrollLeft + selectedCenterOffset
+        - container.clientWidth / 2
+
+    container.scrollTo({
+        left: Math.max(0, Math.min(scrollLeft, maxScrollLeft)),
+        behavior,
+    })
+}
+
+watch(
+    () => props.value,
+    (value, oldValue) => nextTick(() => {
+        scrollToSelected(value, oldValue === undefined ? 'auto' : 'smooth')
+    }),
+    {immediate: true}
+)
 
 const checkPaidGroupPermission = async () => {
     if (!archiveStfModule.value.is_enabled) {
@@ -115,10 +157,19 @@ const select = async value => {
 
     .quick-options {
         display: flex;
+        flex: 1 1 auto;
         align-items: center;
         gap: 6px;
         min-width: 0;
-        overflow: hidden;
+        overflow-x: auto;
+        overflow-y: hidden;
+        overscroll-behavior-x: contain;
+        scrollbar-width: none;
+        touch-action: pan-x;
+
+        &::-webkit-scrollbar {
+            display: none;
+        }
     }
 
     button {
