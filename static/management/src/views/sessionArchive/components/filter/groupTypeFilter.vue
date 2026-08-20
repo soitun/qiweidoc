@@ -68,7 +68,7 @@ const options = [
     {value: '1', label: '客户群'},
     {value: '2', label: '内部群', pay: true},
     {value: '3', label: '非企业客户群', pay: true},
-    {value: 'unremarked_non_enterprise', label: '非企业客户群', pay: true},
+    {value: 'unremarked_non_enterprise', label: '未命名群聊', pay: true},
 ]
 
 const setOptionRef = (value, element) => {
