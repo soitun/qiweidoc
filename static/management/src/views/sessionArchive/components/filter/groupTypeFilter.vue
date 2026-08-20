@@ -39,8 +39,12 @@
 </template>
 
 <script setup>
-import {ref} from 'vue';
+import {computed, ref} from 'vue';
+import {useRouter} from 'vue-router';
+import {useStore} from 'vuex';
+import {Modal} from 'ant-design-vue';
 import {CheckOutlined, FilterOutlined} from '@ant-design/icons-vue';
+import {getPluginRouteParams} from "@/utils/tools";
 
 const props = defineProps({
     value: {
@@ -50,6 +54,10 @@ const props = defineProps({
 })
 const emit = defineEmits(['update:value', 'change'])
 const dropdownOpen = ref(false)
+const router = useRouter()
+const store = useStore()
+
+const archiveStfModule = computed(() => store.getters.getArchiveStfInfo || {})
 
 const options = [
     {value: '', label: '全部'},
@@ -59,9 +67,37 @@ const options = [
     {value: 'unremarked_non_enterprise', label: '未备注非企业客户群', pay: true},
 ]
 
-const select = value => {
+const checkPaidGroupPermission = async () => {
+    if (!archiveStfModule.value.is_enabled) {
+        Modal.confirm({
+            title: '查看非企业客户群/内部群消息需启用插件',
+            content: '请先启用「存档消息管理」插件',
+            okText: '去启用',
+            onOk: () => router.push('/plug/index')
+        })
+        return false
+    }
+
+    const settings = await store.dispatch('updateArchiveStfSetting')
+    if (settings.enable_view_non_customer_group != 1) {
+        Modal.confirm({
+            title: '提示',
+            content: '查看非企业客户群/内部群消息已禁用，如需使用请开启「存档消息管理」插件中的“查看非企业客户群/内部群消息”开关',
+            okText: '去设置',
+            onOk: () => router.push(getPluginRouteParams({name: 'archive_staff'}))
+        })
+        return false
+    }
+    return true
+}
+
+const select = async value => {
     dropdownOpen.value = false
     if (value === props.value) {
+        return
+    }
+    const option = options.find(item => item.value === value)
+    if (option?.pay && !await checkPaidGroupPermission()) {
         return
     }
     emit('update:value', value)
