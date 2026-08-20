@@ -9,7 +9,13 @@
                 type="button"
                 :aria-pressed="value === option.value"
                 @click="select(option.value)">
-                {{ option.label }}<span v-if="option.pay" class="zm-group-type-pay-tag">付费</span>
+                <span class="option-label">
+                    {{ option.label }}
+                    <span
+                        v-if="option.pay && showPaymentTag"
+                        class="zm-payment-tag"
+                        @click.stop="paymentModalShow"></span>
+                </span>
             </button>
         </div>
         <a-dropdown
@@ -31,7 +37,13 @@
                         :class="['menu-option', {active: value === option.value}]"
                         type="button"
                         @click="select(option.value)">
-                        <span>{{ option.label }}<span v-if="option.pay" class="zm-group-type-pay-tag">付费</span></span>
+                        <span class="option-label">
+                            {{ option.label }}
+                            <span
+                                v-if="option.pay && showPaymentTag"
+                                class="zm-payment-tag"
+                                @click.stop="paymentModalShow"></span>
+                        </span>
                         <CheckOutlined v-if="value === option.value"/>
                     </button>
                 </div>
@@ -62,6 +74,10 @@ const router = useRouter()
 const store = useStore()
 
 const archiveStfModule = computed(() => store.getters.getArchiveStfInfo || {})
+const showPaymentTag = computed(() => {
+    const module = archiveStfModule.value
+    return !module.is_install || module.is_expired || module.has_bought != 1
+})
 
 const options = [
     {value: '', label: '全部'},
@@ -109,7 +125,21 @@ watch(
     {immediate: true}
 )
 
+const paymentModalShow = () => {
+    Modal.confirm({
+        title: '查看非企业客户群/内部群消息需购买开启后使用',
+        content: '确认去购买吗？',
+        okText: '去购买',
+        onOk: linkPlugHome,
+    })
+}
+
 const checkPaidGroupPermission = async () => {
+    if (showPaymentTag.value) {
+        paymentModalShow()
+        return false
+    }
+
     if (!archiveStfModule.value.is_enabled) {
         Modal.confirm({
             title: '查看非企业客户群/内部群消息需启用插件',
@@ -131,6 +161,13 @@ const checkPaidGroupPermission = async () => {
         return false
     }
     return true
+}
+
+const linkPlugHome = () => {
+    const link = router.resolve({
+        path: '/plug/index',
+    })
+    window.open(link.href)
 }
 
 const select = async value => {
@@ -178,6 +215,12 @@ const select = async value => {
         cursor: pointer;
     }
 
+    .option-label {
+        display: flex;
+        align-items: center;
+        white-space: nowrap;
+    }
+
     .quick-option {
         flex: none;
         height: 24px;
@@ -187,7 +230,10 @@ const select = async value => {
         background: #f5f6f8;
         border-radius: 12px;
 
-        &:hover,
+        &:not(.active):hover {
+            background: #f2f4f7;
+        }
+
         &.active {
             color: #2475fc;
             background: #e5efff;
@@ -215,20 +261,6 @@ const select = async value => {
     }
 }
 
-/* 付费标记：下拉菜单通过 teleport 渲染到 body，需用全局样式保证快捷选项与下拉菜单一致 */
-:global(.zm-group-type-pay-tag) {
-    display: inline-block;
-    margin-left: 4px;
-    padding: 1px 4px;
-    border-radius: 4px;
-    background: #ED744A;
-    color: #ffffff;
-    font-size: 12px;
-    font-weight: 400;
-    line-height: 16px;
-    vertical-align: middle;
-}
-
 :global(.session-group-type-dropdown .ant-dropdown-menu) {
     padding: 0;
     background: transparent;
@@ -236,11 +268,17 @@ const select = async value => {
 }
 
 :global(.session-group-type-dropdown .group-type-menu) {
-    width: 168px;
+    width: 200px;
     padding: 8px;
     background: #fff;
     border-radius: 8px;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+}
+
+:global(.session-group-type-dropdown .option-label) {
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
 }
 
 :global(.session-group-type-dropdown .menu-option) {
@@ -259,7 +297,10 @@ const select = async value => {
     cursor: pointer;
 }
 
-:global(.session-group-type-dropdown .menu-option:hover),
+:global(.session-group-type-dropdown .menu-option:not(.active):hover) {
+    background: #f2f4f7;
+}
+
 :global(.session-group-type-dropdown .menu-option.active) {
     color: #2475fc;
     background: #e5efff;

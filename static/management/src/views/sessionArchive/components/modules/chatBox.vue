@@ -11,9 +11,19 @@
                                 :currentMsgCancelCollect="currentMsgCancelCollect"
                                 :chatInfo="chatInfo"
                                 class="mr8"/>
-                            <span class="group-name" :title="groupDisplayName">{{ groupDisplayName }}</span>
-                            <span v-if="isInternalGroup" class="internal-tag">@内部群</span>
-                            <EditOutlined class="edit-icon" @click="openRemarkModal"/>
+                            <div class="group-title">
+                                <div class="group-title-main">
+                                    <span class="group-name" :title="groupDisplayName">{{ groupDisplayName }}</span>
+                                    <span v-if="isInternalGroup" class="internal-tag">@内部群</span>
+                                    <EditOutlined class="edit-icon" @click="openRemarkModal"/>
+                                </div>
+                                <div
+                                    v-if="groupOriginalName"
+                                    class="group-original-name"
+                                    :title="groupOriginalName">
+                                    原始群名：{{ groupOriginalName }}
+                                </div>
+                            </div>
                         </template>
                         <template v-else-if="chatInfo?.sender && chatInfo?.receiver">
                             <ChatCollection
@@ -282,6 +292,14 @@ const groupDisplayName = computed(() => {
     return props.chatInfo?.receiver?.remark_name || props.chatInfo?.receiver?.name || '未命名群聊'
 })
 
+// 已设置备注名时，在备注名下方展示原始群名，避免未设置备注时重复显示
+const groupOriginalName = computed(() => {
+    if (!props.chatInfo?.receiver?.remark_name) {
+        return ''
+    }
+    return props.chatInfo?.receiver?.name || ''
+})
+
 // 是否为内部群
 const isInternalGroup = computed(() => {
     return Number(props.chatInfo?.receiver?.group_type) === 2
@@ -532,6 +550,29 @@ const handleGoToDownload = () => {
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
+
+            .group-title {
+                display: flex;
+                flex-direction: column;
+                min-width: 0;
+
+                .group-title-main {
+                    display: flex;
+                    align-items: center;
+                    min-width: 0;
+                }
+
+                .group-original-name {
+                    margin-top: 2px;
+                    overflow: hidden;
+                    color: #8C8C8C;
+                    font-size: 12px;
+                    font-weight: 400;
+                    line-height: 18px;
+                    text-overflow: ellipsis;
+                    white-space: nowrap;
+                }
+            }
 
             .group-name {
                 overflow: hidden;
