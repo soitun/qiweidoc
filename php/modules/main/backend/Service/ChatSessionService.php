@@ -329,10 +329,35 @@ SQL;
     {
         // 先查找这个员工所在的所有群聊
         $table = (new GroupModel)->getTableName();
-        $subSql = "EXISTS (SELECT 1 FROM jsonb_array_elements({$table}.member_list) as members where members->>'userid' = '{$staffUserId}')";
+        // 客户群和内部群可以直接从 member_list 判断员工归属；非企业客户群无法通过
+        // 企微群详情接口补全成员，member_list 会为空，需要从已存档消息的收发人中兜底判断。
+        $subSql = "(
+            EXISTS (
+                SELECT 1
+                FROM jsonb_array_elements({$table}.member_list) AS members
+                WHERE members->>'userid' = :memberStaffUserId
+            )
+            OR (
+                {$table}.group_type = " . GroupModel::GROUP_TYPE_NON_ENTERPRISE . "
+                AND EXISTS (
+                    SELECT 1
+                    FROM main.chat_messages AS messages
+                    WHERE messages.corp_id = {$table}.corp_id
+                      AND messages.roomid = {$table}.chat_id
+                      AND (
+                          messages.\"from\" = :senderStaffUserId
+                          OR jsonb_exists(messages.to_list, :recipientStaffUserId)
+                      )
+                )
+            )
+        )";
         $query = GroupModel::query()->select(['chat_id', 'name', 'remark_name', 'group_type', 'owner'])
             ->where(['corp_id' => $corp->get('id')])
-            ->andWhere(new Expression($subSql));
+            ->andWhere(new Expression($subSql, [
+                ':memberStaffUserId' => $staffUserId,
+                ':senderStaffUserId' => $staffUserId,
+                ':recipientStaffUserId' => $staffUserId,
+            ]));
         if (!empty($search['keyword'])) {
             $query->andWhere(['ilike', 'name', $search['keyword']]);
         }
