@@ -1,22 +1,27 @@
 <template>
     <div class="group-type-filter">
         <div ref="quickOptionsRef" class="quick-options">
-            <button
+            <a-tooltip
                 v-for="option in options"
                 :key="option.value"
-                :ref="element => setOptionRef(option.value, element)"
-                :class="['quick-option', {active: value === option.value}]"
-                type="button"
-                :aria-pressed="value === option.value"
-                @click="select(option.value)">
-                <span class="option-label">
-                    {{ option.label }}
-                    <span
-                        v-if="option.pay && showPaymentTag"
-                        class="zm-payment-tag"
-                        @click.stop="paymentModalShow"></span>
-                </span>
-            </button>
+                :title="option.description"
+                placement="right"
+                overlayClassName="session-group-type-tooltip">
+                <button
+                    :ref="element => setOptionRef(option.value, element)"
+                    :class="['quick-option', {active: value === option.value}]"
+                    type="button"
+                    :aria-pressed="value === option.value"
+                    @click="select(option.value)">
+                    <span class="option-label">
+                        {{ option.label }}
+                        <span
+                            v-if="option.pay && showPaymentTag"
+                            class="zm-payment-tag"
+                            @click.stop="paymentModalShow"></span>
+                    </span>
+                </button>
+            </a-tooltip>
         </div>
         <a-dropdown
             v-model:open="dropdownOpen"
@@ -31,21 +36,26 @@
             </button>
             <template #overlay>
                 <div class="group-type-menu">
-                    <button
+                    <a-tooltip
                         v-for="option in options"
                         :key="option.value"
-                        :class="['menu-option', {active: value === option.value}]"
-                        type="button"
-                        @click="select(option.value)">
-                        <span class="option-label">
-                            {{ option.label }}
-                            <span
-                                v-if="option.pay && showPaymentTag"
-                                class="zm-payment-tag"
-                                @click.stop="paymentModalShow"></span>
-                        </span>
-                        <CheckOutlined v-if="value === option.value"/>
-                    </button>
+                        :title="option.description"
+                        placement="right"
+                        overlayClassName="session-group-type-tooltip">
+                        <button
+                            :class="['menu-option', {active: value === option.value}]"
+                            type="button"
+                            @click="select(option.value)">
+                            <span class="option-label">
+                                {{ option.label }}
+                                <span
+                                    v-if="option.pay && showPaymentTag"
+                                    class="zm-payment-tag"
+                                    @click.stop="paymentModalShow"></span>
+                            </span>
+                            <CheckOutlined v-if="value === option.value"/>
+                        </button>
+                    </a-tooltip>
                 </div>
             </template>
         </a-dropdown>
@@ -80,11 +90,25 @@ const showPaymentTag = computed(() => {
 })
 
 const options = [
-    {value: '', label: '全部'},
-    {value: '1', label: '客户群'},
-    {value: '2', label: '内部群', pay: true},
-    {value: '3', label: '非企业客户群', pay: true},
-    {value: 'unremarked_non_enterprise', label: '未命名群聊', pay: true},
+    {
+        value: '',
+        label: '全部',
+        description: '购买了存档消息管理插件后，可查看非企业客户群/内部群消息，未购买只查看客户群消息',
+    },
+    {value: '1', label: '客户群', description: '企业员工为群主拉的群'},
+    {value: '2', label: '内部群', description: '群内成员都是企业的员工', pay: true},
+    {
+        value: '3',
+        label: '非企业客户群',
+        description: '群主为个微、个微转企微或群主为其他企业员工，或群主为非企业员工但未同步到系统的群；员工不在可见范围时，不同步群聊',
+        pay: true,
+    },
+    {
+        value: 'unremarked_non_enterprise',
+        label: '未命名群聊',
+        description: '仅筛选非企业客户群中未备注的群聊',
+        pay: true,
+    },
 ]
 
 const setOptionRef = (value, element) => {
@@ -305,5 +329,13 @@ const select = async value => {
 :global(.session-group-type-dropdown .menu-option.active) {
     color: #2475fc;
     background: #e5efff;
+}
+
+:global(.session-group-type-tooltip) {
+    max-width: 360px;
+}
+
+:global(.session-group-type-tooltip .ant-tooltip-inner) {
+    white-space: normal;
 }
 </style>

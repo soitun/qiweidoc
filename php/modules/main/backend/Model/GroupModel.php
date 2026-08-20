@@ -10,6 +10,8 @@ use Throwable;
 
 class GroupModel extends BaseModel
 {
+    private const INTERNAL_GROUP_REFRESH_INTERVAL = 600;
+
     // 群类型：客户群
     public const GROUP_TYPE_CUSTOMER = 1;
     // 群类型：内部群
@@ -101,7 +103,7 @@ class GroupModel extends BaseModel
     }
 
     /**
-     * 群聊消息拉取时，确保群信息存在（不存在时查询企微内部群接口补全）
+     * 群聊消息拉取时，确保群信息存在，并每小时刷新内部群信息。
      *
      * @throws Throwable
      */
@@ -113,7 +115,11 @@ class GroupModel extends BaseModel
                 ['chat_id' => $chatId],
             ])
             ->getOne();
-        if (!empty($group)) {
+
+        $shouldRefreshInternalGroup = !empty($group)
+            && $group->get('group_type') === self::GROUP_TYPE_INTERNAL
+            && strtotime($group->get('updated_at')) <= time() - self::INTERNAL_GROUP_REFRESH_INTERVAL;
+        if (!empty($group) && !$shouldRefreshInternalGroup) {
             return;
         }
 
@@ -130,6 +136,11 @@ class GroupModel extends BaseModel
             $createTime = $res['room_create_time'] ?? 0;
             $members = $res['members'] ?? [];
         } catch (Throwable) {
+            // 已识别为内部群的记录刷新失败时保留原数据，等待下次补偿，避免被降级为非企业客户群
+            if (!empty($group)) {
+                $group->update(['updated_at' => now()]);
+                return;
+            }
             // 非内部群或接口调用失败，按非企业客户群处理
         }
 
@@ -158,6 +169,8 @@ class GroupModel extends BaseModel
                 'cst_num' => 0,
                 'total_member' => count($memberList),
                 'group_type' => self::GROUP_TYPE_INTERNAL,
+                // 记录本次刷新时间，避免每条消息重复请求
+                'updated_at' => now(),
             ]);
         } else {
             self::updateOrCreate(['and',
