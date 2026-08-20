@@ -51,4 +51,24 @@ class GroupController extends BaseController
         return $this->jsonResponse($res);
     }
 
+    /**
+     * 保存群聊备注名
+     *
+     * @param ServerRequestInterface $request
+     * @return ResponseInterface
+     * @throws Throwable
+     */
+    public function saveRemarkName(ServerRequestInterface $request): ResponseInterface
+    {
+        $corp = $request->getAttribute(CorpModel::class);
+
+        $body = $request->getParsedBody();
+        $chatId = (string) ($body['chat_id'] ?? '');
+        $remarkName = (string) ($body['remark_name'] ?? '');
+
+        GroupService::saveRemarkName($corp, $chatId, $remarkName);
+
+        return $this->jsonResponse();
+    }
+
 }

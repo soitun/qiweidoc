@@ -35,6 +35,13 @@
                         checked-children="开"
                         un-checked-children="关"></a-switch>
                 </a-form-item>
+                <a-form-item label="查看非企业客户群/内部群消息">
+                    <a-switch
+                        v-model:checked="formState.enable_view_non_customer_group"
+                        @change="save"
+                        checked-children="开"
+                        un-checked-children="关"></a-switch>
+                </a-form-item>
             </a-form>
         </div>
     </div>
@@ -50,6 +57,7 @@ import LoadingBox from "@/components/loadingBox.vue";
 const loading = ref(false)
 const formState = ref({
     enable_voice_play: true,
+    enable_view_non_customer_group: false,
     is_staff_designated: 0,
     max_staff_num: 5
 })
@@ -69,6 +77,7 @@ function save() {
     }
     let params = copyObj(formState.value)
     params.enable_voice_play = Number(params.enable_voice_play)
+    params.enable_view_non_customer_group = Number(params.enable_view_non_customer_group)
     setArchiveStaffSettings(params).then(res => {
         message.success('已保存')
     })

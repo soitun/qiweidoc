@@ -13,8 +13,11 @@
                 <img v-else class="avatar" src="@/assets/default-group-avatar.png"/>
             </div>
             <div class="right">
-                <div class="top" :title="item.name">
-                    <div class="user-name">{{ item.name || '未命名群聊' }}</div>
+                <div class="top" :title="groupDisplayName(item)">
+                    <div class="user-name">
+                        {{ groupDisplayName(item) }}
+                        <span v-if="isInternalGroup(item)" class="internal-tag">@内部群</span>
+                    </div>
                 </div>
             </div>
         </div>
@@ -69,6 +72,9 @@ const loadData = () => {
     }
     if (props.filterData?.keyword) {
         params.keyword = props.filterData.keyword
+    }
+    if (props.filterData?.group_type) {
+        params.group_type = props.filterData.group_type
     }
     groupsList(params).then(res => {
         let data = res.data || {}
@@ -131,6 +137,16 @@ const isSelected = item => {
     return item?.chat_id === selected.value.chat_id
 }
 
+// 群聊展示名称：有备注名优先展示备注名，否则展示群名称
+const groupDisplayName = item => {
+    return item?.remark_name || item?.name || '未命名群聊'
+}
+
+// 是否为内部群
+const isInternalGroup = item => {
+    return Number(item?.group_type) === 2
+}
+
 const change = (item) => {
     if (selected.value && isSelected(item)) {
         return
@@ -191,6 +207,15 @@ const change = (item) => {
                     overflow: hidden;
                     text-overflow: ellipsis;
                     white-space: nowrap;
+
+                    .internal-tag {
+                        display: inline-block;
+                        margin-left: 4px;
+                        font-size: 12px;
+                        font-weight: 400;
+                        color: #E07B00;
+                        vertical-align: middle;
+                    }
                 }
             }
 

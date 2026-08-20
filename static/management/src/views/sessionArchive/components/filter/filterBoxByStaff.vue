@@ -47,7 +47,6 @@
 
 <script setup>
 import {ref, reactive, computed} from 'vue';
-import {UpOutlined, DownOutlined} from '@ant-design/icons-vue';
 import ShowSettingModal from "@/views/sessionArchive/components/modules/childs/showSettingModal.vue";
 import SelectTagModal from "@/components/select-customer-tag/selectTagModal.vue";
 

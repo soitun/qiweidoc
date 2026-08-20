@@ -5,8 +5,10 @@ namespace Modules\Main\Service;
 
 use Common\DB\BaseModel;
 use Common\Yii;
+use LogicException;
 use Modules\Main\Enum\EnumChatConversationType;
 use Modules\Main\Model\CorpModel;
+use Modules\Main\Model\GroupModel;
 use Throwable;
 use Yiisoft\Arrays\ArrayHelper;
 
@@ -25,11 +27,12 @@ class GroupService
     {
         $page = $data["page"] ?? 1;
         $size = $data["size"] ?? 20;
+        $groupConversationType = EnumChatConversationType::Group->value;
 
         $toWhere = '';
         // 搜索关键字
         if (!empty($data["keyword"])) {
-            $toWhere .= " and (c.name ilike '%{$data['keyword']}%' or c.chat_id = '{$data['keyword']}')";
+            $toWhere .= " and (c.name ilike '%{$data['keyword']}%' or c.remark_name ilike '%{$data['keyword']}%' or c.chat_id = '{$data['keyword']}')";
         }
 
         // 群主筛选
@@ -47,9 +50,25 @@ class GroupService
             $toWhere .= " and c.created_at between '{$data['start_time']}' and '{$data['stop_time']}' ";
         }
 
-        //有过会话记录的
+        // 会话场景：查询全部群聊类型（含内部群、非企业客户群）
         if (!empty($data['has_conversation'])) {
-            $toWhere .= " and c.has_conversation=true ";
+            $toWhere .= " and exists (
+                select 1
+                from main.chat_conversations as conversation
+                where conversation.corp_id = c.corp_id
+                  and conversation.\"to\" = c.chat_id
+                  and conversation.type = {$groupConversationType}
+            ) ";
+        } else {
+            // 单纯查询客户群列表：只查询客户群
+            $toWhere .= " and c.group_type = " . GroupModel::GROUP_TYPE_CUSTOMER . " ";
+        }
+
+        // 群类型筛选
+        if (in_array($data['group_type'] ?? '', ['1', '2', '3'], true)) {
+            $toWhere .= " and c.group_type = {$data['group_type']} ";
+        } elseif (($data['group_type'] ?? '') === 'unremarked_non_enterprise') {
+            $toWhere .= " and c.group_type = 3 and coalesce(c.remark_name, '') = '' ";
         }
 
         // 排序条件
@@ -61,11 +80,10 @@ class GroupService
 
         // 拼接基础sql
         $offset = ($page - 1) * $size;
-        $type = EnumChatConversationType::Group->value;
         $baseSql = /** @lang sql */ <<<SQL
 select v.id as conversations_id, v.last_msg_time, v.type,v.is_collect,v.collect_reason,v.collect_time, c.*
 from main.groups as c
-left join main.chat_conversations as v on c.chat_id= v."to" and v.corp_id = '{$corp->get('id')}'  and v.type = {$type}
+left join main.chat_conversations as v on c.chat_id= v."to" and v.corp_id = '{$corp->get('id')}'  and v.type = {$groupConversationType}
 where c.corp_id = '{$corp->get('id')}' {$toWhere} order by {$order_by} desc
 SQL;
         $countSql = "select count(*) as total from({$baseSql})";
@@ -104,5 +122,34 @@ SQL;
 
 
         return $res;
+    }
+
+    /**
+     * 保存群聊备注名
+     *
+     * @param CorpModel $corp
+     * @param string $chatId
+     * @param string $remarkName
+     * @return void
+     * @throws Throwable
+     */
+    public static function saveRemarkName(CorpModel $corp, string $chatId, string $remarkName): void
+    {
+        if (empty($chatId)) {
+            throw new LogicException("群聊id不能为空");
+        }
+
+        $group = GroupModel::query()
+            ->where(['and',
+                ['corp_id' => $corp->get('id')],
+                ['chat_id' => $chatId],
+            ])
+            ->getOne();
+
+        if (empty($group)) {
+            throw new LogicException("群聊不存在");
+        }
+
+        $group->update(['remark_name' => $remarkName]);
     }
 }

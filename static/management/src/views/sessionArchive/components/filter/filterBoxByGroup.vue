@@ -15,11 +15,11 @@
 </template>
 
 <script setup>
-import {reactive, ref} from 'vue';
+import {reactive} from 'vue';
 
 const emit = defineEmits(['change'])
 const filterData = reactive({
-    keyword: ''
+    keyword: '',
 })
 
 const search = () => {
@@ -30,8 +30,7 @@ const search = () => {
 
 <style scoped lang="less">
 .zm-filter-box {
-    padding-top: 8px;
-    padding-right: 60px;
+    padding: 8px 60px 0 16px;
     flex-wrap: wrap;
     height: 41px;
     overflow: hidden;
@@ -39,12 +38,11 @@ const search = () => {
 
     .zm-filter-item {
         margin-bottom: 12px;
-        margin-left: 16px;
-    }
-}
 
-.show-date-time {
-    cursor: pointer;
-    color: #164799;
+        .filter-item-content {
+            width: 192px;
+            flex-shrink: 0;
+        }
+    }
 }
 </style>

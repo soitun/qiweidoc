@@ -12,6 +12,9 @@
                 <div class="header">
                     <div class="title">群聊<span class="staff-num">（{{ main.groupCount }}）</span></div>
                 </div>
+                <div class="group-type-filter-wrapper">
+                    <GroupTypeFilter v-model:value="groupType" @change="groupTypeChange"/>
+                </div>
                 <GroupBox class="main-content-box"
                           :key="groupCompKey"
                           :default="defaultParams"
@@ -24,6 +27,7 @@
                      class="session-right-block"
                      :chatInfo="chatInfo"
                      @changeCollect="onChangeCollect"
+                     @remarkChange="onRemarkChange"
                      sessionType="group"
                      :defaultParams="defaultParams"/>
         </div>
@@ -36,6 +40,7 @@ import {panelWinHandle} from "@/views/sessionArchive/components/panelWinHandle";
 import ChatBox from "@/views/sessionArchive/components/modules/chatBox.vue";
 import GroupBox from "@/views/sessionArchive/components/modules/groupBox.vue";
 import FilterBoxByGroup from "@/views/sessionArchive/components/filter/filterBoxByGroup.vue";
+import GroupTypeFilter from "@/views/sessionArchive/components/filter/groupTypeFilter.vue";
 import DragStretchBox from "@/components/dragStretchBox.vue";
 
 const props = defineProps({
@@ -47,7 +52,8 @@ const cacheKey = 'zm:session:archive:win:box:width:load:by:group';
 const {panelWin, panelBlockWidthChange} = panelWinHandle(cacheKey)
 const groupCompKey = ref(1)
 const chatRef = ref(null)
-const filterData = ref(null)
+const groupType = ref('')
+const filterData = ref({keyword: '', group_type: ''})
 const main = reactive({
     groupCount: 0,
     selectedGroup: null,
@@ -67,14 +73,26 @@ const chatInfo = computed(() => {
         },
         receiver: {
             name: main.selectedGroup?.name,
-            chat_id: main.selectedContact?.chat_id,
+            remark_name: main.selectedGroup?.remark_name,
+            group_type: main.selectedGroup?.group_type,
+            chat_id: main.selectedGroup?.chat_id,
             zm_user_type: 'GROUP'
         }
     }
 })
 
 const search = val => {
-    filterData.value = val
+    filterData.value = {...filterData.value, keyword: val?.keyword || ''}
+    reload()
+}
+
+const groupTypeChange = val => {
+    groupType.value = val
+    filterData.value = {...filterData.value, group_type: val}
+    reload()
+}
+
+const reload = () => {
     main.groupCount = 0
     main.selectedGroup = null
     groupCompKey.value += 1
@@ -102,6 +120,12 @@ const onChangeCollect = (obj) => {
     main.selectedGroup.conversations_id = obj.conversation_id
     main.selectedGroup.is_collect = obj.is_collect
     main.selectedGroup.collect_reason = obj.collect_reason
+}
+
+const onRemarkChange = (obj) => {
+    if (main.selectedGroup && obj?.chat_id === main.selectedGroup.chat_id) {
+        main.selectedGroup.remark_name = obj.remark_name
+    }
 }
 </script>
 
@@ -169,8 +193,16 @@ const onChangeCollect = (obj) => {
             }
         }
 
+        .group-type-filter-wrapper {
+            height: 41px;
+            padding: 0 16px;
+            display: flex;
+            align-items: center;
+            border-bottom: 1px solid rgba(5, 5, 5, 0.06);
+        }
+
         .main-content-box {
-            height: calc(100% - 41px);
+            height: calc(100% - 82px);
         }
     }
 
