@@ -192,7 +192,7 @@ import {
     getFileIcon,
     MessageTypeTextMap,
     RedpacketTypeMap,
-    copyObj
+    copyObj, getPluginRouteParams
 } from "@/utils/tools";
 import BenzAMRRecorder from 'benz-amr-recorder';
 import {formatPrice} from "@/utils/tools";
@@ -283,12 +283,7 @@ const existArchivePlug = () => {
             title: '提示',
             content: '语音播放下载已禁用，如需使用需启用插件「存档消息管理」设置',
             okText: '去设置',
-            onOk: () => {
-                const link = router.resolve({
-                    path: '/plug/index'
-                })
-                window.open(link.href)
-            }
+            onOk: () => router.push(getPluginRouteParams({name: 'archive_staff'}))
         })
         return false
     }
