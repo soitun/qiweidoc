@@ -209,15 +209,11 @@ const change = (item) => {
                     white-space: nowrap;
 
                     .internal-tag {
-                        flex-shrink: 0;
                         display: inline-block;
                         margin-left: 4px;
-                        padding: 0 4px;
-                        font-size: 10px;
-                        line-height: 16px;
-                        color: #2475FC;
-                        background: #E5EFFF;
-                        border-radius: 3px;
+                        font-size: 12px;
+                        font-weight: 400;
+                        color: #E07B00;
                         vertical-align: middle;
                     }
                 }

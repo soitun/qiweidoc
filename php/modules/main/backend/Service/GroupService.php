@@ -27,6 +27,7 @@ class GroupService
     {
         $page = $data["page"] ?? 1;
         $size = $data["size"] ?? 20;
+        $groupConversationType = EnumChatConversationType::Group->value;
 
         $toWhere = '';
         // 搜索关键字
@@ -51,7 +52,13 @@ class GroupService
 
         // 会话场景：查询全部群聊类型（含内部群、非企业客户群）
         if (!empty($data['has_conversation'])) {
-            $toWhere .= " and c.has_conversation=true ";
+            $toWhere .= " and exists (
+                select 1
+                from main.chat_conversations as conversation
+                where conversation.corp_id = c.corp_id
+                  and conversation.\"to\" = c.chat_id
+                  and conversation.type = {$groupConversationType}
+            ) ";
         } else {
             // 单纯查询客户群列表：只查询客户群
             $toWhere .= " and c.group_type = " . GroupModel::GROUP_TYPE_CUSTOMER . " ";
@@ -73,11 +80,10 @@ class GroupService
 
         // 拼接基础sql
         $offset = ($page - 1) * $size;
-        $type = EnumChatConversationType::Group->value;
         $baseSql = /** @lang sql */ <<<SQL
 select v.id as conversations_id, v.last_msg_time, v.type,v.is_collect,v.collect_reason,v.collect_time, c.*
 from main.groups as c
-left join main.chat_conversations as v on c.chat_id= v."to" and v.corp_id = '{$corp->get('id')}'  and v.type = {$type}
+left join main.chat_conversations as v on c.chat_id= v."to" and v.corp_id = '{$corp->get('id')}'  and v.type = {$groupConversationType}
 where c.corp_id = '{$corp->get('id')}' {$toWhere} order by {$order_by} desc
 SQL;
         $countSql = "select count(*) as total from({$baseSql})";
