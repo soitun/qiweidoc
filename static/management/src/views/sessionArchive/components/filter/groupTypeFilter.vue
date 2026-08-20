@@ -135,7 +135,8 @@ const paymentModalShow = () => {
 }
 
 const checkPaidGroupPermission = async () => {
-    if (showPaymentTag.value) {
+    // 试用期内 has_bought 仍为 0，但只要插件已安装且未过期，就应允许使用付费能力。
+    if (!archiveStfModule.value.is_install || archiveStfModule.value.is_expired) {
         paymentModalShow()
         return false
     }

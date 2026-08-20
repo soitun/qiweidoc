@@ -21,7 +21,7 @@
                                     v-if="groupOriginalName"
                                     class="group-original-name"
                                     :title="groupOriginalName">
-                                    原始群名：{{ groupOriginalName }}
+                                    {{ groupOriginalName }}
                                 </div>
                             </div>
                         </template>
