@@ -32,7 +32,7 @@ class GroupService
         $toWhere = '';
         // 搜索关键字
         if (!empty($data["keyword"])) {
-            $toWhere .= " and (c.name ilike '%{$data['keyword']}%' or c.chat_id = '{$data['keyword']}')";
+            $toWhere .= " and (c.name ilike '%{$data['keyword']}%' or c.remark_name ilike '%{$data['keyword']}%' or c.chat_id = '{$data['keyword']}')";
         }
 
         // 群主筛选

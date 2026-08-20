@@ -359,7 +359,10 @@ SQL;
                 ':recipientStaffUserId' => $staffUserId,
             ]));
         if (!empty($search['keyword'])) {
-            $query->andWhere(['ilike', 'name', $search['keyword']]);
+            $query->andWhere(['or',
+                ['ilike', 'name', $search['keyword']],
+                ['ilike', 'remark_name', $search['keyword']],
+            ]);
         }
         if (in_array($search['group_type'] ?? '', ['1', '2', '3'], true)) {
             $query->andWhere(['group_type' => (int) $search['group_type']]);
