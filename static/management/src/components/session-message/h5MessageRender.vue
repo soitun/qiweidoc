@@ -2,6 +2,8 @@
     <div :class="{isSelf: isSelf}">
         <!--文本-->
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
+        <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
+        <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
             <a-tooltip v-if="messageInfo.file_is_remove" title="图片已清除">

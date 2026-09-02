@@ -7,6 +7,7 @@
 
 namespace Modules\Main\Consumer;
 
+use Modules\Main\Enum\EnumMessageType;
 use Modules\Main\Model\ChatMessageModel;
 use Modules\Main\Model\CorpModel;
 use Modules\Main\Service\ChatSessionPullService;
@@ -28,6 +29,14 @@ class DownloadChatSessionMediasConsumer
      */
     public function handle(): void
     {
+        if (in_array($this->message->get('msg_type'), [
+            EnumMessageType::ChatRecord->value,
+            EnumMessageType::Mixed->value,
+        ], true)) {
+            ChatSessionPullService::handleStructuredMessageMedias($this->corp, $this->message);
+            return;
+        }
+
         ChatSessionPullService::handleMedia($this->corp, $this->message);
     }
 }

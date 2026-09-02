@@ -2,12 +2,13 @@
     <a-modal v-model:open="visible"
         title="查看聊天记录"
         :confirm-loading="saving"
+        :keyboard="!childVisible"
         width="746px">
             <MessageItem ref="messageItemRef" @showMessage="onShowMessage"/>
         <template #footer></template>
 
         <!-- 聊天记录弹窗 -->
-        <MessageListPage ref="messageListPageRef" />
+        <MessageListPage ref="messageListPageRef" @visible-change="childVisible = $event" />
     </a-modal>
 </template>
 
@@ -20,6 +21,7 @@ const messageItemRef = ref(null)
 const messageListPageRef = ref(null)
 const visible = ref(false)
 const saving = ref(false)
+const childVisible = ref(false)
 const messageList = ref([])
 
 const onShowMessage = (list, title) => {

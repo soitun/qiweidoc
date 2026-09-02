@@ -2,6 +2,8 @@
     <div :class="{isSelf: isSelf}">
         <!--文本-->
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
+        <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
+        <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
             <a-tooltip v-if="messageInfo.file_is_remove" title="图片已清除">
@@ -23,7 +25,7 @@
                 <div class="msg-link-title">{{ messageInfo.raw_content.title }}</div>
             </div>
             <a class="bottom msg-link-bottom" target="_blank" :href="messageInfo.raw_content.link_url">
-               <span class="msg-link-info">详情</span>
+               <span class="msg-link-info">{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
                <RightOutlined class="msg-link-icon icon-14"/>
             </a>
         </div>
@@ -154,7 +156,7 @@
                共 {{ messageInfo?.raw_content?.item.length }} 条消息
            </div>
            <div class="bottom zm-flex-between zm-tip-info" @click="onShowMessage(messageInfo?.raw_content?.item, messageInfo?.raw_content?.title)">
-               <span>详情</span>
+               <span>{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
                <RightOutlined class="icon-14"/>
            </div>
        </div>

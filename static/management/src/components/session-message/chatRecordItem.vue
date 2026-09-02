@@ -6,6 +6,8 @@
         <div class="message-main">
             <div v-if="!compact" class="message-time">{{ statDateFormat(item.msgtime) }}</div>
             <div v-if="normalizedType === 'text'" class="text-content">{{ content.content || '--' }}</div>
+            <div v-else-if="normalizedType === 'agree'" class="message-box">对方同意会话内容存档</div>
+            <div v-else-if="normalizedType === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
 
             <div v-else-if="normalizedType === 'image'" class="message-box image-box">
                 <a-image v-if="content.download_url" :src="content.download_url" :width="180"/>
@@ -34,7 +36,7 @@
                 <div>
                     <div class="link-title">{{ content.title || '链接消息' }}</div>
                     <div class="description">{{ content.description }}</div>
-                    <a v-if="safeLink" :href="safeLink" target="_blank" rel="noopener noreferrer">查看详情</a>
+                    <a v-if="safeLink" :href="safeLink" target="_blank" rel="noopener noreferrer">{{ MessageTypeTextMap[normalizedType] }}</a>
                 </div>
             </div>
 
@@ -65,7 +67,7 @@
                 <div class="count">共 {{ recordItems.length }} 条消息</div>
                 <button v-if="allowOpen && recordItems.length" type="button" class="detail"
                         @click="onShowMessage(recordItems, content.title)">
-                    <span>详情</span>
+                    <span>{{ MessageTypeTextMap[normalizedType] }}</span>
                     <RightOutlined/>
                 </button>
             </div>
@@ -79,7 +81,7 @@
 import {computed} from 'vue';
 import dayjs from 'dayjs';
 import {EnvironmentOutlined, RightOutlined} from '@ant-design/icons-vue';
-import {formatBytes, getFileIcon, jsonDecode} from '@/utils/tools';
+import {formatBytes, getFileIcon, jsonDecode, MessageTypeTextMap} from '@/utils/tools';
 
 const props = defineProps({
     item: {type: Object, default: () => ({})},

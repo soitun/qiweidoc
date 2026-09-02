@@ -16,7 +16,6 @@ use Common\Yii;
 use LogicException;
 use Modules\Main\Consumer\DownloadChatSessionBitMediasConsumer;
 use Modules\Main\Consumer\DownloadChatSessionMediasConsumer;
-use Modules\Main\Consumer\DownloadStructuredMessageMediasConsumer;
 use Modules\Main\Consumer\UploadStorageToCloudConsumer;
 use Modules\Main\Enum\EnumChatConversationType;
 use Modules\Main\Enum\EnumChatMessageRole;
@@ -107,7 +106,7 @@ class ChatSessionPullService
                     EnumMessageType::ChatRecord->value,
                     EnumMessageType::Mixed->value,
                 ], true)) {
-                    Producer::dispatch(DownloadStructuredMessageMediasConsumer::class, ['corp' => $corp, 'message' => $messageData]);
+                    Producer::dispatch(DownloadChatSessionMediasConsumer::class, ['corp' => $corp, 'message' => $messageData]);
                 }
 
                 // 广播

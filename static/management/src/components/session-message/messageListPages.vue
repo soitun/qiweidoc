@@ -9,7 +9,7 @@
 </template>
 
 <script setup>
-import {ref, nextTick} from 'vue';
+import {ref, nextTick, watch} from 'vue';
 import MessageItem from './messageItem.vue';
 
 const messageRef = ref(null)
@@ -17,6 +17,9 @@ const visible = ref(false)
 const saving = ref(false)
 const messageList = ref([])
 const titleVal = ref('转发合集')
+const emit = defineEmits(['visibleChange'])
+
+watch(visible, value => emit('visibleChange', value))
 
 const show = (messageListData, title, type) => {
     messageList.value = messageListData
