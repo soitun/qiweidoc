@@ -16,6 +16,7 @@ use Common\Yii;
 use LogicException;
 use Modules\Main\Consumer\DownloadChatSessionBitMediasConsumer;
 use Modules\Main\Consumer\DownloadChatSessionMediasConsumer;
+use Modules\Main\Consumer\DownloadStructuredMessageMediasConsumer;
 use Modules\Main\Consumer\UploadStorageToCloudConsumer;
 use Modules\Main\Enum\EnumChatConversationType;
 use Modules\Main\Enum\EnumChatMessageRole;
@@ -36,6 +37,19 @@ class ChatSessionPullService
     private const MESSAGE_LIMIT = 100;
     private const MAX_FETCH_ROUNDS = 10;
     private const LARGE_FILE_THRESHOLD = 20 * 1024 * 1024; // 20MB
+    private const MAX_CHAT_RECORD_DEPTH = 3;
+    private const CHAT_RECORD_MEDIA_TYPE_MAP = [
+        'ChatRecordImage' => 'image',
+        'ChatRecordFile' => 'file',
+        'ChatRecordVideo' => 'video',
+        'ChatRecordVoice' => 'voice',
+        'ChatRecordEmotion' => 'emotion',
+        'image' => 'image',
+        'file' => 'file',
+        'video' => 'video',
+        'voice' => 'voice',
+        'emotion' => 'emotion',
+    ];
     private static CorpModel $corp;
 
     /**
@@ -89,6 +103,11 @@ class ChatSessionPullService
                     } else {
                         Producer::dispatch(DownloadChatSessionMediasConsumer::class, ['corp' => $corp, 'message' => $messageData]);
                     }
+                } elseif (in_array($messageData->get('msg_type'), [
+                    EnumMessageType::ChatRecord->value,
+                    EnumMessageType::Mixed->value,
+                ], true)) {
+                    Producer::dispatch(DownloadStructuredMessageMediasConsumer::class, ['corp' => $corp, 'message' => $messageData]);
                 }
 
                 // 广播
@@ -114,7 +133,8 @@ class ChatSessionPullService
 
     public static function isLargeFile(ChatMessageModel $message): bool
     {
-        return $message->get('msg_type') === 'file' && $message->get('raw_content')['filesize'] > self::LARGE_FILE_THRESHOLD;
+        return $message->get('msg_type') === 'file'
+            && (int) ($message->get('raw_content')['filesize'] ?? 0) > self::LARGE_FILE_THRESHOLD;
     }
 
     /**
@@ -128,10 +148,104 @@ class ChatSessionPullService
             throw new LogicException("消息类型不正确");
         }
 
-        $sdkFileId = $message->get('raw_content')['sdkfileid'] ?? '';
-        $md5 = $message->get('raw_content')['md5sum'] ?? "";
+        $hash = self::downloadMedia($corp, $message->get('msg_type'), $message->get('raw_content'));
+        $message->update(['msg_content' => $hash]);
+    }
+
+    /**
+     * 下载聊天记录或混合消息中最多三层的媒体，并把存储 hash 回写到对应 content。
+     *
+     * @throws Throwable
+     */
+    public static function handleStructuredMessageMedias(CorpModel $corp, ChatMessageModel $message): void
+    {
+        if (!in_array($message->get('msg_type'), [
+            EnumMessageType::ChatRecord->value,
+            EnumMessageType::Mixed->value,
+        ], true)) {
+            throw new LogicException('消息类型不正确');
+        }
+
+        $rawContent = $message->get('raw_content');
+        if (empty($rawContent['item']) || !is_array($rawContent['item'])) {
+            return;
+        }
+
+        $rawContent['item'] = self::downloadChatRecordItems($corp, $rawContent['item'], 1);
+        $message->update(['raw_content' => $rawContent]);
+    }
+
+    /**
+     * @throws Throwable
+     */
+    private static function downloadChatRecordItems(CorpModel $corp, array $items, int $depth): array
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $contentWasString = is_string($item['content'] ?? null);
+            $content = self::decodeChatRecordItemContent($item['content'] ?? null);
+            if ($content === null) {
+                continue;
+            }
+
+            $type = (string) ($item['type'] ?? '');
+            if (isset(self::CHAT_RECORD_MEDIA_TYPE_MAP[$type])) {
+                $sdkFileId = $content['sdkfileid'] ?? '';
+                $md5 = (string) ($content['md5sum'] ?? '');
+                if (!empty($sdkFileId) && is_md5($md5)) {
+                    $content['storage_hash'] = self::downloadMedia(
+                        $corp,
+                        self::CHAT_RECORD_MEDIA_TYPE_MAP[$type],
+                        $content,
+                    );
+                }
+            } elseif ($depth < self::MAX_CHAT_RECORD_DEPTH && self::isChatRecordContainer($type)) {
+                if (!empty($content['item']) && is_array($content['item'])) {
+                    $content['item'] = self::downloadChatRecordItems($corp, $content['item'], $depth + 1);
+                }
+            }
+
+            $item['content'] = $contentWasString
+                ? json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : $content;
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    private static function decodeChatRecordItemContent(mixed $content): ?array
+    {
+        if (is_array($content)) {
+            return $content;
+        }
+        if (!is_string($content) || $content === '') {
+            return null;
+        }
+
+        $decoded = json_decode($content, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private static function isChatRecordContainer(string $type): bool
+    {
+        return in_array($type, ['chatrecord', 'ChatRecord', 'ChatRecordMixed', 'mixed'], true);
+    }
+
+    /**
+     * 下载媒体。相同 MD5 的文件在分布式锁内复用已有存储，避免重复下载。
+     *
+     * @throws Throwable
+     */
+    private static function downloadMedia(CorpModel $corp, string $messageType, array $rawContent): string
+    {
+        $sdkFileId = $rawContent['sdkfileid'] ?? '';
+        $md5 = strtolower((string) ($rawContent['md5sum'] ?? ''));
         if (empty($sdkFileId)) {
-            throw new LogicException("消息不完整, 缺少md5字段");
+            throw new LogicException('消息不完整, 缺少sdkfileid字段');
         }
         if (empty($md5)) {
             $md5 = md5($sdkFileId);
@@ -140,60 +254,91 @@ class ChatSessionPullService
         $fileName = Uuid::uuid4();
         $fileExtension = "";
 
-        if ($message->get('msg_type') == 'file') {
-            $fileName = $message->get('raw_content')['filename'] ?? 'default';
-            $fileExtension = $message->get('raw_content')['fileext'] ?? 'default';
-        } elseif ($message->get('msg_type') == 'image') {
+        if ($messageType == 'file') {
+            $fileName = $rawContent['filename'] ?? 'default';
+            $fileExtension = $rawContent['fileext'] ?? 'default';
+        } elseif ($messageType == 'image') {
             $fileName = Uuid::uuid4() . '.png';
             $fileExtension = "png";
-        } elseif ($message->get('msg_type') == 'voice') {
+        } elseif ($messageType == 'voice') {
             $fileName = Uuid::uuid4() . '.amr';
             $fileExtension = 'amr';
-        } elseif ($message->get('msg_type') == 'video') {
+        } elseif ($messageType == 'video') {
             $fileName = Uuid::uuid4() . '.mp4';
             $fileExtension = 'mp4';
-        } elseif ($message->get('msg_type') == 'emotion') {
-            $type = $message->get('raw_content')['type'] ?? 2;
+        } elseif ($messageType == 'emotion') {
+            $type = $rawContent['type'] ?? 2;
             $fileExtension = $type == 1 ? 'gif' : 'png';
             $fileName = Uuid::uuid4() . "." . $fileExtension;
-        } elseif ($message->get('msg_type') == 'meeting_voice_call') {
-            $fileName = $message->get('raw_content')['voiceid'] . '.mp3';
-            $fileExtension = "mp4";
+        } elseif ($messageType == 'meeting_voice_call') {
+            $fileName = ($rawContent['voiceid'] ?? Uuid::uuid4()) . '.mp3';
+            $fileExtension = "mp3";
         }
 
-        $objectKey = StorageService::generateObjectKey($fileName, $md5);
-        $request = [
-            'corp_id' => $corp->get('id'),
-            'chat_secret' => $corp->get('chat_secret'),
-            'sdk_file_id' => $sdkFileId,
-
-            'storage_endpoint' => Yii::params()['local-storage']['endpoint'],
-            'storage_region' => Yii::params()['local-storage']['region'],
-            'storage_access_key' => Yii::params()['local-storage']['access_key'],
-            'storage_secret_key' => Yii::params()['local-storage']['secret_key'],
-            'storage_bucket_name' => StorageModel::SESSION_BUCKET,
-            'storage_object_key' => $objectKey,
-        ];
-        $fileInfo = Micro::call('wxfinance', 'FetchAndStreamMediaData', json_encode($request), 500);
-        if (empty($fileInfo) || empty($fileInfo['hash'])) {
-            throw new LogicException("下载资源失败");
+        $mutex = Yii::mutex(600);
+        $mutexKey = 'chat-media-download:' . $md5;
+        if (!$mutex->acquire($mutexKey, 10)) {
+            throw new LogicException('相同文件正在下载，请稍后重试');
         }
 
-        $retentionDays = (int)SettingModel::getValue('local_session_file_retention_days');
-        $storage = StorageModel::create([
-            'hash'                          => $fileInfo['hash'],
-            'original_filename'             => $fileName,
-            'file_extension'                => $fileExtension,
-            'mime_type'                     => $fileInfo['mime'] ?? '',
-            'file_size'                     => $fileInfo['size'] ?? 0,
-            'local_storage_bucket'          => StorageModel::SESSION_BUCKET,
-            'local_storage_object_key'      => $objectKey,
-            'local_storage_expired_at'      => $retentionDays > 0 ? Carbon::now()->addDays($retentionDays)->toDateTimeString('m') : null,
-        ]);
-        $message->update(['msg_content' => $fileInfo['hash']]);
+        try {
+            if (StorageService::hasAvailableStorage($md5)) {
+                return $md5;
+            }
 
-        // 异步保存到云存储
-        Producer::dispatch(UploadStorageToCloudConsumer::class, ['storage' => $storage]);
+            $objectKey = StorageService::generateObjectKey((string) $fileName, $md5);
+            $request = [
+                'corp_id' => $corp->get('id'),
+                'chat_secret' => $corp->get('chat_secret'),
+                'sdk_file_id' => $sdkFileId,
+
+                'storage_endpoint' => Yii::params()['local-storage']['endpoint'],
+                'storage_region' => Yii::params()['local-storage']['region'],
+                'storage_access_key' => Yii::params()['local-storage']['access_key'],
+                'storage_secret_key' => Yii::params()['local-storage']['secret_key'],
+                'storage_bucket_name' => StorageModel::SESSION_BUCKET,
+                'storage_object_key' => $objectKey,
+            ];
+            $fileInfo = Micro::call('wxfinance', 'FetchAndStreamMediaData', json_encode($request), 500);
+            if (empty($fileInfo) || empty($fileInfo['hash'])) {
+                throw new LogicException('下载资源失败');
+            }
+
+            $actualHash = strtolower($fileInfo['hash']);
+            if (!empty($rawContent['md5sum']) && $actualHash !== $md5) {
+                self::removeInvalidMedia($objectKey);
+                throw new LogicException('下载资源MD5校验失败');
+            }
+
+            $retentionDays = (int) SettingModel::getValue('local_session_file_retention_days');
+            $storage = StorageModel::create([
+                'hash' => $actualHash,
+                'original_filename' => $fileName,
+                'file_extension' => $fileExtension,
+                'mime_type' => $fileInfo['mime'] ?? '',
+                'file_size' => $fileInfo['size'] ?? 0,
+                'local_storage_bucket' => StorageModel::SESSION_BUCKET,
+                'local_storage_object_key' => $objectKey,
+                'local_storage_expired_at' => $retentionDays > 0 ? Carbon::now()->addDays($retentionDays)->toDateTimeString('m') : null,
+            ]);
+
+            Producer::dispatch(UploadStorageToCloudConsumer::class, ['storage' => $storage]);
+            return $actualHash;
+        } finally {
+            $mutex->release($mutexKey);
+        }
+    }
+
+    private static function removeInvalidMedia(string $objectKey): void
+    {
+        try {
+            StorageService::getLocalS3Client()->deleteObject([
+                'Bucket' => StorageModel::SESSION_BUCKET,
+                'Key' => $objectKey,
+            ]);
+        } catch (Throwable $e) {
+            Yii::logger()->error($e);
+        }
     }
 
     /**

@@ -113,6 +113,18 @@
             </div>
         </div>
         <!-- 混合消息 -->
+        <div v-else-if="messageInfo.msg_type == 'mixed'" class="message-box mixed-message-box">
+            <template v-if="messageInfo?.raw_content?.item?.length">
+                <ChatRecordItem
+                    v-for="(item, index) in messageInfo.raw_content.item"
+                    :key="index"
+                    :item="item"
+                    :allow-open="false"
+                    compact
+                />
+            </template>
+            <span v-else>[混合消息]</span>
+        </div>
         <div v-else class="message-box">[{{ MessageTypeTextMap[messageInfo.msg_type] }}]</div>
         <span v-if="messageInfo.is_revoke" class="message-box" style="color: rgba(0,0,0,.25);">已撤回</span>
     </div>
@@ -134,6 +146,7 @@ import {
     RedpacketTypeMap
 } from "@/utils/tools";
 import BenzAMRRecorder from 'benz-amr-recorder';
+import ChatRecordItem from './chatRecordItem.vue';
 
 const props = defineProps({
     messageInfo: {

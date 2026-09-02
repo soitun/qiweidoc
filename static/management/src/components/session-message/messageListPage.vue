@@ -26,18 +26,19 @@ const titleVal = ref('转发合集')
 const modals = reactive([])
 const modalRefs = ref([])
 
-const onShowMessage = (list) => {
+const onShowMessage = (list, title) => {
     modals.push({ messageListData: list })
     nextTick(() => {
         const idx = modals.length - 1
         if (modalRefs.value[idx]) {
-            modalRefs.value[idx].show(list , 3)
+            modalRefs.value[idx].show(list, title, 3)
         }
     })
 }
 
-const show = (messageListData) => {
+const show = (messageListData, title) => {
     messageList.value = messageListData
+    titleVal.value = title || '转发合集'
     visible.value = true
     saving.value = false
     nextTick(() => {

@@ -31,7 +31,20 @@ use Yiisoft\Db\Expression\Expression;
 
 class ChatSessionService
 {
-    //可以筛选的消息类型，文本，语音，文件，图片，音视频通话
+    private const MAX_CHAT_RECORD_DEPTH = 3;
+    private const CHAT_RECORD_MEDIA_TYPES = [
+        'ChatRecordImage',
+        'ChatRecordFile',
+        'ChatRecordVideo',
+        'ChatRecordVoice',
+        'ChatRecordEmotion',
+        'image',
+        'file',
+        'video',
+        'voice',
+        'emotion',
+    ];
+    // 可以筛选的消息类型
     const FilterMsgType = [
         "text" => "text",
         "voice" => "voice",
@@ -39,7 +52,18 @@ class ChatSessionService
         "image" => "image",
         "video" => "video",
         "voiptext" => ["voiptext", "meeting_voice_call"],
-
+        "weapp" => "weapp",
+        "link" => "link",
+        "sphfeed" => "sphfeed",
+        "redpacket" => "redpacket",
+        "meeting" => "meeting",
+        "card" => "card",
+        "location" => "location",
+        "vote" => "vote",
+        "mixed" => "mixed",
+        "qydiskfile" => "qydiskfile",
+        "agree" => "agree",
+        "disagree" => "disagree",
     ];
 
     //需要下载的文件类型
@@ -608,10 +632,7 @@ SQL;
             $message->append('from_detail', ($message->get('from') == $conversation->get('from') ? $fromDetail : $toDetail));
             $message->append('to_detail',  ($message->get('from') == $conversation->get('from') ? $toDetail : $fromDetail));
 
-            // 动态获取下载链接
-            if (in_array($message->get('msg_type'), self::ValidMediaType) && is_md5($message->get('msg_content'))) {
-                $message->append('msg_content', StorageService::getDownloadUrl($message->get('msg_content')));
-            }
+            self::appendMediaDownloadUrls($message);
         }
 
         //如果开启已读标记
@@ -746,15 +767,94 @@ SQL;
                 $message->append('from_detail', $t);
             }
 
-            // 动态获取下载链接
-            if (in_array($message->get('msg_type'), self::ValidMediaType) && is_md5($message->get('msg_content'))) {
-                $message->append('msg_content', StorageService::getDownloadUrl($message->get('msg_content')));
-            }
+            self::appendMediaDownloadUrls($message);
         }
 
         $result['group'] = $group;
 
         return $result;
+    }
+
+    /**
+     * 动态生成媒体下载链接，嵌套聊天记录最多处理三层。
+     */
+    private static function appendMediaDownloadUrls(ChatMessageModel $message): void
+    {
+        if (in_array($message->get('msg_type'), self::ValidMediaType) && is_md5($message->get('msg_content'))) {
+            $message->append('msg_content', StorageService::getDownloadUrl($message->get('msg_content')));
+            return;
+        }
+
+        if (!in_array($message->get('msg_type'), [
+            EnumMessageType::ChatRecord->value,
+            EnumMessageType::Mixed->value,
+        ], true)) {
+            return;
+        }
+
+        $rawContent = $message->get('raw_content');
+        if (empty($rawContent['item']) || !is_array($rawContent['item'])) {
+            return;
+        }
+
+        $rawContent['item'] = self::appendChatRecordItemUrls($rawContent['item'], 1);
+        $message->append('raw_content', $rawContent);
+    }
+
+    private static function appendChatRecordItemUrls(array $items, int $depth): array
+    {
+        foreach ($items as &$item) {
+            if (!is_array($item)) {
+                continue;
+            }
+
+            $contentWasString = is_string($item['content'] ?? null);
+            $content = self::decodeChatRecordItemContent($item['content'] ?? null);
+            if ($content === null) {
+                continue;
+            }
+
+            $type = (string) ($item['type'] ?? '');
+            if (in_array($type, self::CHAT_RECORD_MEDIA_TYPES, true)) {
+                $storageHash = $content['storage_hash'] ?? '';
+                if (is_md5($storageHash)) {
+                    $content['download_url'] = StorageService::getDownloadUrl($storageHash);
+                    $content['media_status'] = $content['download_url'] === '' ? 'removed' : 'success';
+                } elseif (!empty($content['sdkfileid']) && is_md5((string) ($content['md5sum'] ?? ''))) {
+                    $content['download_url'] = '';
+                    $content['media_status'] = 'pending';
+                }
+            } elseif ($depth < self::MAX_CHAT_RECORD_DEPTH && self::isChatRecordContainer($type)) {
+                if (!empty($content['item']) && is_array($content['item'])) {
+                    $content['item'] = self::appendChatRecordItemUrls($content['item'], $depth + 1);
+                }
+            }
+
+            $item['content'] = $contentWasString
+                ? json_encode($content, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES)
+                : $content;
+        }
+        unset($item);
+
+        return $items;
+    }
+
+    private static function decodeChatRecordItemContent(mixed $content): ?array
+    {
+        if (is_array($content)) {
+            return $content;
+        }
+        if (!is_string($content) || $content === '') {
+            return null;
+        }
+
+        $decoded = json_decode($content, true);
+        return is_array($decoded) ? $decoded : null;
+    }
+
+    private static function isChatRecordContainer(string $type): bool
+    {
+        return in_array($type, ['chatrecord', 'ChatRecord', 'ChatRecordMixed', 'mixed'], true);
     }
 
 
