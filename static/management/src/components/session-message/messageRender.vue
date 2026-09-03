@@ -54,6 +54,13 @@
             </div>
             <div class="msg-location-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
+        <!-- 待办 -->
+        <div v-else-if="messageInfo.msg_type === 'todo'" class="message-box msg-todo-box">
+            <div class="msg-todo-title" :title="messageInfo?.raw_content?.title">
+                {{ messageInfo?.raw_content?.title || '--' }}
+            </div>
+            <div class="msg-todo-content">{{ messageInfo?.raw_content?.content || '--' }}</div>
+        </div>
         <!-- 会议 -->
         <div v-else-if="messageInfo.msg_type === 'meeting'" class="message-box msg-meeting-box">
             <div class="msg-meeting-content">
@@ -214,7 +221,7 @@
        <!-- 视频号 -->
        <div v-else-if="messageInfo.msg_type == 'sphfeed'" class="message-box msg-weapp-box msg-sphfeed-box">
           <div class="msg-sphfeed-avatar">
-            <img src="@/assets/image/icon-video.png" alt="视频号">
+            <img src="@/assets/image/sphfeed-icon.png" alt="视频号">
           </div>
           <div class="msg-weapp-content">
             <div class="title">{{ messageInfo?.raw_content?.sph_name }}</div>
@@ -376,7 +383,7 @@ const playingVideo = (msg) => {
 }
 
 const getTotalStorageSizeTitle = () => {
-    return "当前文件存储已超过" + totalStorage + "G，无法下载"
+    return "当前文件存储已超过" + totalStorage.value + "G，无法下载"
 }
 
 const downloadMsgFile = () => {
@@ -802,6 +809,34 @@ const showBuyFileStorage = () => {
             color: #8c8c8c;
             font-size: 14px;
             line-height: 22px;
+        }
+    }
+    &.msg-todo-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 12px;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-todo-title {
+            overflow: hidden;
+            color: #262626;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-todo-content {
+            margin-top: 4px;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+            overflow-wrap: anywhere;
+            white-space: pre-line;
         }
     }
     &.msg-weapp-box {

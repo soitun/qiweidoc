@@ -59,6 +59,7 @@ class ChatSessionService
         "meeting" => "meeting",
         "card" => "card",
         "location" => "location",
+        "todo" => "todo",
         "vote" => "vote",
         "mixed" => "mixed",
         "qydiskfile" => "qydiskfile",
