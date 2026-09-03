@@ -56,10 +56,13 @@
         </div>
         <!-- 待办 -->
         <div v-else-if="messageInfo.msg_type === 'todo'" class="message-box msg-todo-box">
-            <div class="msg-todo-title" :title="messageInfo?.raw_content?.title">
-                {{ messageInfo?.raw_content?.title || '--' }}
+            <div class="msg-todo-content">
+                <div class="msg-todo-title" :title="messageInfo?.raw_content?.title">
+                    {{ messageInfo?.raw_content?.title || '--' }}
+                </div>
+                <div class="msg-todo-description">{{ messageInfo?.raw_content?.content || '--' }}</div>
             </div>
-            <div class="msg-todo-content">{{ messageInfo?.raw_content?.content || '--' }}</div>
+            <div class="msg-todo-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
         <!-- 会议 -->
         <div v-else-if="messageInfo.msg_type === 'meeting'" class="message-box msg-meeting-box">
@@ -219,8 +222,8 @@
           </div>
        </div>
        <!-- 视频号 -->
-       <div v-else-if="messageInfo.msg_type == 'sphfeed'" class="message-box msg-weapp-box msg-sphfeed-box">
-          <div class="msg-sphfeed-avatar">
+       <div v-else-if="messageInfo.msg_type == 'sphfeed'" class="message-box msg-weapp-box">
+          <div class="msg-weapp-avatar">
             <img src="@/assets/image/sphfeed-icon.png" alt="视频号">
           </div>
           <div class="msg-weapp-content">
@@ -814,11 +817,15 @@ const showBuyFileStorage = () => {
     &.msg-todo-box {
         box-sizing: border-box;
         width: 280px;
-        padding: 12px;
+        padding: 0;
         overflow: hidden;
         border-radius: 6px;
         border: 1px solid #F0F0F0;
         background: #FFF;
+
+        .msg-todo-content {
+            padding: 12px;
+        }
 
         .msg-todo-title {
             overflow: hidden;
@@ -830,7 +837,7 @@ const showBuyFileStorage = () => {
             text-overflow: ellipsis;
         }
 
-        .msg-todo-content {
+        .msg-todo-description {
             margin-top: 4px;
             color: #8C8C8C;
             font-size: 14px;
@@ -838,8 +845,19 @@ const showBuyFileStorage = () => {
             overflow-wrap: anywhere;
             white-space: pre-line;
         }
+
+        .msg-todo-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
     }
     &.msg-weapp-box {
+        box-sizing: border-box;
+        width: 280px;
+        overflow: hidden;
         border-radius: 6px;
         border: 1px solid #F0F0F0;
         background: #FFF;
@@ -847,8 +865,10 @@ const showBuyFileStorage = () => {
         gap: 12px;
 
         .msg-weapp-avatar {
+            flex-shrink: 0;
             width: 48px;
             height: 48px;
+            overflow: hidden;
             border-radius: 4px;
 
             img {
@@ -867,6 +887,7 @@ const showBuyFileStorage = () => {
 
             .title {
                 display: -webkit-box;
+                width: 100%;
                 max-width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;
@@ -882,6 +903,7 @@ const showBuyFileStorage = () => {
 
             .description {
                 display: -webkit-box;
+                width: 100%;
                 max-width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;
@@ -893,24 +915,6 @@ const showBuyFileStorage = () => {
                 font-style: normal;
                 font-weight: 400;
                 line-height: 20px;
-            }
-        }
-    }
-    &.msg-sphfeed-box {
-        .msg-sphfeed-avatar {
-            display: flex;
-            flex-shrink: 0;
-            width: 48px;
-            height: 48px;
-            align-items: center;
-            justify-content: center;
-            border-radius: 4px;
-            background: #f5f5f5;
-
-            img {
-                width: 24px;
-                height: 24px;
-                object-fit: contain;
             }
         }
     }
