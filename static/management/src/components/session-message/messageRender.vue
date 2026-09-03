@@ -6,8 +6,11 @@
         <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
         <!-- 个人名片 -->
         <div v-else-if="messageInfo.msg_type === 'card'" class="message-box contact-card-box">
-            <div class="corp-name">{{ messageInfo?.raw_content?.corpname || '--' }}</div>
-            <div class="user-name">{{ messageInfo?.raw_content?.userid || '--' }}</div>
+            <div class="contact-card-content">
+                <div class="corp-name">{{ messageInfo?.raw_content?.corpname || '--' }}</div>
+                <div class="user-name">{{ messageInfo?.raw_content?.userid || '--' }}</div>
+            </div>
+            <div class="contact-card-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
@@ -33,6 +36,18 @@
                <span class="msg-link-info">{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
                <RightOutlined class="msg-link-icon icon-14"/>
             </a>
+        </div>
+        <!-- 位置 -->
+        <div v-else-if="messageInfo.msg_type === 'location'" class="message-box msg-location-box">
+            <div class="msg-location-content">
+                <div class="msg-location-title" :title="messageInfo?.raw_content?.title">
+                    {{ messageInfo?.raw_content?.title || '--' }}
+                </div>
+                <div class="msg-location-address" :title="messageInfo?.raw_content?.address">
+                    {{ messageInfo?.raw_content?.address || '--' }}
+                </div>
+            </div>
+            <div class="msg-location-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
         <!-- 视频 -->
         <div v-else-if="messageInfo.msg_type == 'video'" class="message-box video-box">
@@ -438,7 +453,12 @@ const showBuyFileStorage = () => {
     &.contact-card-box {
         box-sizing: border-box;
         width: 240px;
-        padding: 14px 16px;
+        padding: 0;
+        overflow: hidden;
+
+        .contact-card-content {
+            padding: 14px 16px;
+        }
 
         .corp-name {
             color: #262626;
@@ -449,6 +469,14 @@ const showBuyFileStorage = () => {
 
         .user-name {
             margin-top: 2px;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .contact-card-bottom {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
             color: #8c8c8c;
             font-size: 14px;
             line-height: 22px;
@@ -613,6 +641,47 @@ const showBuyFileStorage = () => {
 
         .msg-link-icon {
             color: #8c8c8c;
+        }
+    }
+    &.msg-location-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-location-content {
+            padding: 12px;
+        }
+
+        .msg-location-title,
+        .msg-location-address {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-location-title {
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .msg-location-address {
+            margin-top: 4px;
+            color: #8c8c8c;
+            font-size: 12px;
+            line-height: 20px;
+        }
+
+        .msg-location-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
         }
     }
     &.msg-weapp-box {
