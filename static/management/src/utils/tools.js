@@ -274,7 +274,7 @@ export const MessageTypeTextMap = {
     meeting_voice_call: "语音通话",
     mixed: "混合消息",
     news: "图文消息",
-    card: "卡片消息",
+    card: "名片消息",
     location: "地址消息",
     weapp: "小程序",
     chatrecord: "消息转发",

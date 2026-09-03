@@ -69,7 +69,6 @@
                         <StaffPaymentTag :type="2">语音</StaffPaymentTag>
                         </a-radio-button>
                         <a-radio-button value="video">视频</a-radio-button>
-                        <a-radio-button v-if="sessionType === 'session'" value="voiptext">音视频通话</a-radio-button>
                     </a-radio-group>
                     <a-dropdown
                         v-model:open="moreMsgTypeOpen"
@@ -226,6 +225,7 @@ import {
     GiftOutlined,
     IdcardOutlined,
     LinkOutlined,
+    PhoneOutlined,
     VideoCameraAddOutlined,
     VideoCameraOutlined,
 } from '@ant-design/icons-vue';
@@ -302,7 +302,10 @@ const filterData = reactive({
     msg_type: 'all',
     dates: []
 })
-const MORE_MSG_TYPES = [
+const MORE_MSG_TYPES = computed(() => [
+    ...(props.sessionType === 'session'
+        ? [{value: 'voiptext', label: '音视频通话', icon: PhoneOutlined}]
+        : []),
     {value: 'weapp', label: '小程序', icon: AppstoreOutlined},
     {value: 'link', label: '链接', icon: LinkOutlined},
     {value: 'sphfeed', label: '视频号', icon: VideoCameraOutlined},
@@ -315,11 +318,11 @@ const MORE_MSG_TYPES = [
     {value: 'qydiskfile', label: '微盘文件', icon: CloudServerOutlined},
     {value: 'agree', label: '同意存档', icon: CheckSquareOutlined},
     {value: 'disagree', label: '拒绝存档', icon: CloseSquareOutlined},
-]
+])
 const moreMsgTypeOpen = ref(false)
 const selectedMoreMsgType = ref('')
 const moreMsgTypeLabel = computed(() => {
-    return MORE_MSG_TYPES.find(item => item.value === selectedMoreMsgType.value)?.label || '更多'
+    return MORE_MSG_TYPES.value.find(item => item.value === selectedMoreMsgType.value)?.label || '更多'
 })
 const isMoreMsgTypeSelected = computed(() => filterData.msg_type === selectedMoreMsgType.value && !!selectedMoreMsgType.value)
 

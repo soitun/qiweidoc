@@ -30,7 +30,12 @@
                 <div class="msg-link-avatar">
                     <img :src="messageInfo?.raw_content?.image_url" alt="">
                 </div>
-                <div class="msg-link-title">{{ messageInfo.raw_content.title }}</div>
+                <div class="msg-link-text">
+                    <div class="msg-link-title">{{ messageInfo?.raw_content?.title }}</div>
+                    <div v-if="messageInfo?.raw_content?.description" class="msg-link-description">
+                        {{ messageInfo.raw_content.description }}
+                    </div>
+                </div>
             </div>
             <a class="bottom msg-link-bottom" target="_blank" :href="messageInfo.raw_content.link_url">
                <span class="msg-link-info">{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
@@ -48,6 +53,22 @@
                 </div>
             </div>
             <div class="msg-location-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 会议 -->
+        <div v-else-if="messageInfo.msg_type === 'meeting'" class="message-box msg-meeting-box">
+            <div class="msg-meeting-content">
+                <div class="msg-meeting-topic" :title="messageInfo?.raw_content?.topic">
+                    {{ messageInfo?.raw_content?.topic || '--' }}
+                </div>
+                <div class="msg-meeting-time">
+                    {{ formatMeetingTime(messageInfo?.raw_content?.starttime, messageInfo?.raw_content?.endtime) }}
+                </div>
+            </div>
+            <div class="msg-meeting-address" :title="messageInfo?.raw_content?.address">
+                <span class="label">地点</span>
+                <span class="value">{{ messageInfo?.raw_content?.address || '--' }}</span>
+            </div>
+            <div class="msg-meeting-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
         <!-- 视频 -->
         <div v-else-if="messageInfo.msg_type == 'video'" class="message-box video-box">
@@ -188,6 +209,16 @@
           <div class="msg-weapp-content">
             <div class="title">{{ messageInfo?.raw_content?.description }}</div>
             <div class="description">{{ messageInfo?.raw_content?.title }}</div>
+          </div>
+       </div>
+       <!-- 视频号 -->
+       <div v-else-if="messageInfo.msg_type == 'sphfeed'" class="message-box msg-weapp-box msg-sphfeed-box">
+          <div class="msg-sphfeed-avatar">
+            <img src="@/assets/image/icon-video.png" alt="视频号">
+          </div>
+          <div class="msg-weapp-content">
+            <div class="title">{{ messageInfo?.raw_content?.sph_name }}</div>
+            <div class="description">{{ messageInfo?.raw_content?.feed_desc }}</div>
           </div>
        </div>
         <!-- 混合消息 -->
@@ -378,6 +409,16 @@ const showFileSize = size => {
         return ''
     }
     return formatBytes(size)
+}
+
+const formatMeetingTime = (startTimestamp, endTimestamp) => {
+    const start = dayjs(Number(startTimestamp) * 1000)
+    const end = dayjs(Number(endTimestamp) * 1000)
+    if (!startTimestamp || !endTimestamp || !start.isValid() || !end.isValid()) {
+        return '--'
+    }
+    const todayText = start.isSame(dayjs(), 'day') ? '今天 ' : ''
+    return `${todayText}${start.format('M月D日 HH:mm')} - ${end.format('HH:mm')}`
 }
 
 const showBuyFileStorage = () => {
@@ -591,6 +632,7 @@ const showBuyFileStorage = () => {
             padding: 12px;
 
             .msg-link-avatar {
+                flex-shrink: 0;
                 width: 48px;
                 height: 48px;
                 border-radius: 4px;
@@ -602,18 +644,34 @@ const showBuyFileStorage = () => {
                 }
             }
 
-            .msg-link-title {
+            .msg-link-text {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .msg-link-title,
+            .msg-link-description {
                 display: -webkit-box;
                 width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;
                 overflow: hidden;
-                color: #262626;
                 text-overflow: ellipsis;
-                font-size: 14px;
                 font-style: normal;
                 font-weight: 400;
+            }
+
+            .msg-link-title {
+                color: #262626;
+                font-size: 14px;
                 line-height: 22px;
+            }
+
+            .msg-link-description {
+                margin-top: 2px;
+                color: #8c8c8c;
+                font-size: 12px;
+                line-height: 20px;
             }
         }
 
@@ -684,6 +742,68 @@ const showBuyFileStorage = () => {
             line-height: 22px;
         }
     }
+    &.msg-meeting-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-meeting-content {
+            padding: 12px;
+            background: linear-gradient(135deg, #f4f8ff 0%, #eaf3ff 100%);
+        }
+
+        .msg-meeting-topic,
+        .msg-meeting-time,
+        .msg-meeting-address .value {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-meeting-topic {
+            color: #262626;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+        }
+
+        .msg-meeting-time {
+            margin-top: 4px;
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .msg-meeting-address {
+            display: flex;
+            padding: 10px 12px;
+            font-size: 14px;
+            line-height: 22px;
+
+            .label {
+                flex-shrink: 0;
+                margin-right: 12px;
+                color: #8c8c8c;
+            }
+
+            .value {
+                min-width: 0;
+                color: #595959;
+            }
+        }
+
+        .msg-meeting-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
     &.msg-weapp-box {
         border-radius: 6px;
         border: 1px solid #F0F0F0;
@@ -705,6 +825,8 @@ const showBuyFileStorage = () => {
 
         .msg-weapp-content {
             display: flex;
+            min-width: 0;
+            flex: 1;
             flex-direction: column;
             gap: 4px;
 
@@ -736,6 +858,24 @@ const showBuyFileStorage = () => {
                 font-style: normal;
                 font-weight: 400;
                 line-height: 20px;
+            }
+        }
+    }
+    &.msg-sphfeed-box {
+        .msg-sphfeed-avatar {
+            display: flex;
+            flex-shrink: 0;
+            width: 48px;
+            height: 48px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 4px;
+            background: #f5f5f5;
+
+            img {
+                width: 24px;
+                height: 24px;
+                object-fit: contain;
             }
         }
     }
