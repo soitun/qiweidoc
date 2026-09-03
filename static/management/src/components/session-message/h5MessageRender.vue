@@ -118,7 +118,8 @@
             </div>
         </div>
         <!-- 红包消息-->
-        <div v-else-if="messageInfo.msg_type == 'external_redpacket'" class="message-box red-envelope-box">
+        <div v-else-if="['external_redpacket', 'redpacket'].includes(messageInfo.msg_type)"
+             class="message-box red-envelope-box">
             <div class="zm-flex-center">
                 <img class="cover" src="@/assets/image/session/red-envelope-cover.png"/>
                 <div class="ml8">

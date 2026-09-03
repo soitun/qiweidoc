@@ -56,6 +56,7 @@ class ChatSessionService
         "link" => "link",
         "sphfeed" => "sphfeed",
         "redpacket" => "redpacket",
+        "external_redpacket" => "external_redpacket",
         "meeting" => "meeting",
         "card" => "card",
         "location" => "location",

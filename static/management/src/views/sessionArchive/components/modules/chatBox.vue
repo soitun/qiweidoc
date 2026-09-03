@@ -310,6 +310,7 @@ const MORE_MSG_TYPES = computed(() => [
     {value: 'link', label: '链接', icon: LinkOutlined},
     {value: 'sphfeed', label: '视频号', icon: VideoCameraOutlined},
     {value: 'redpacket', label: '红包', icon: GiftOutlined},
+    {value: 'external_redpacket', label: '互通红包', icon: GiftOutlined},
     {value: 'meeting', label: '会议邀请', icon: VideoCameraAddOutlined},
     {value: 'card', label: '名片', icon: IdcardOutlined},
     {value: 'location', label: '位置', icon: EnvironmentOutlined},
