@@ -498,6 +498,11 @@ class ChatSessionPullService
         $msgType = $decryptedData['msgtype'] ?? '';
         $enumMsgType = EnumMessageType::tryFrom($msgType);
         if (!$enumMsgType) {
+            Yii::logger()->warning('不支持的会话消息类型，消息未入库', [
+                'msg_id' => $msg['msgid'] ?? '',
+                'seq' => $msg['seq'] ?? 0,
+                'msg_type' => $msgType,
+            ]);
             return null;
         }
         $content = $enumMsgType->getMessageHandler()($decryptedData);

@@ -40,6 +40,8 @@ enum EnumMessageType: string
     case SphFeed                = 'sphfeed';
     case VoipText               = 'voiptext';
     case QyDiskFile             = 'qydiskfile';
+    case Solitaire              = 'solitaire';
+    case Note                   = 'note';
 
     public function getLabel(): string
     {
@@ -75,6 +77,8 @@ enum EnumMessageType: string
             self::SphFeed               => '视频号消息',
             self::VoipText              => '音视频通话',
             self::QyDiskFile            => '微盘文件',
+            self::Solitaire             => '接龙消息',
+            self::Note                  => '笔记消息',
         };
     }
 
@@ -112,6 +116,37 @@ enum EnumMessageType: string
             self::SphFeed => fn ($data) => ['raw_content' => $data['sphfeed']],
             self::VoipText => fn ($data) => ['raw_content' => $data['info']],
             self::QyDiskFile => fn ($data) => ['raw_content' => $data['info']],
+            self::Solitaire => fn ($data) => [
+                'raw_content' => $data['info'] ?? [],
+                'msg_content' => $data['info']['solitaire_content'] ?? '',
+            ],
+            self::Note => fn ($data) => [
+                'raw_content' => $data['info'] ?? [],
+                'msg_content' => self::getNoteTextContent($data['info']['items'] ?? []),
+            ],
         };
+    }
+
+    /**
+     * 提取笔记中的文本条目，供消息展示和检索使用。
+     */
+    private static function getNoteTextContent(array $items): string
+    {
+        $contents = [];
+        foreach ($items as $item) {
+            if (!is_array($item) || ($item['msg_type'] ?? '') !== self::Text->value) {
+                continue;
+            }
+
+            $content = $item['content'] ?? null;
+            if (is_string($content)) {
+                $content = json_decode($content, true);
+            }
+            if (is_array($content) && is_string($content['content'] ?? null)) {
+                $contents[] = $content['content'];
+            }
+        }
+
+        return implode("\n", $contents);
     }
 }

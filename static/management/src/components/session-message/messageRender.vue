@@ -4,6 +4,19 @@
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
         <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
         <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
+        <!-- 笔记 -->
+        <div v-else-if="messageInfo.msg_type === 'note'" class="message-box note-message-box">
+            <div class="note-content">
+                <div class="note-title">{{ noteContent.title }}</div>
+                <div v-if="noteContent.description" class="note-description">{{ noteContent.description }}</div>
+            </div>
+            <div class="note-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 接龙 -->
+        <div v-else-if="messageInfo.msg_type === 'solitaire'" class="message-box solitaire-message-box">
+            <div class="solitaire-content">{{ solitaireContent || '--' }}</div>
+            <div class="solitaire-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
         <!-- 个人名片 -->
         <div v-else-if="messageInfo.msg_type === 'card'" class="message-box contact-card-box">
             <div class="contact-card-content">
@@ -267,7 +280,7 @@ import {
     getFileIcon,
     MessageTypeTextMap,
     RedpacketTypeMap,
-    copyObj, getPluginRouteParams
+    copyObj, getPluginRouteParams, getNoteDisplayContent, getSolitaireDisplayContent
 } from "@/utils/tools";
 import BenzAMRRecorder from 'benz-amr-recorder';
 import {formatPrice} from "@/utils/tools";
@@ -298,6 +311,8 @@ const router = useRouter()
 const store = useStore()
 const amrPlayer = ref(null)
 const totalStorage = ref(10)
+const noteContent = computed(() => getNoteDisplayContent(props.messageInfo))
+const solitaireContent = computed(() => getSolitaireDisplayContent(props.messageInfo))
 
 const archiveStfModule = computed(() => {
     return store.getters.getArchiveStfInfo || {}
@@ -499,6 +514,61 @@ const showBuyFileStorage = () => {
     &.mixed-message-box {
         min-width: 220px;
         padding: 4px 12px;
+    }
+
+    &.note-message-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 0;
+
+        .note-content {
+            padding: 12px 16px;
+        }
+
+        .note-title {
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+        }
+
+        .note-description {
+            margin-top: 4px;
+            color: #9A9AA1;
+            font-size: 14px;
+            line-height: 22px;
+            white-space: pre-wrap;
+        }
+
+        .note-type {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
+
+    &.solitaire-message-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 0;
+
+        .solitaire-content {
+            padding: 12px 16px;
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .solitaire-type {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
     }
 
     &.contact-card-box {
