@@ -278,13 +278,18 @@ export const MessageTypeTextMap = {
     location: "地址消息",
     weapp: "小程序",
     chatrecord: "消息转发",
+    todo: "待办消息",
+    vote: "投票消息",
     collect: "表单消息",
     redpacket: "红包消息",
     meeting: "会议消息",
+    meeting_notification: "会议控制消息",
     docmsg: "在线文档",
     markdown: "markdown消息",
     calendar: "日历消息",
     external_redpacket: "企业互通红包",
+    sphfeed: "视频号消息",
+    qydiskfile: "微盘文件",
 }
 
 //1 普通红包、2 拼手气群红包、3 激励群红包

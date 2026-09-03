@@ -4,6 +4,11 @@
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
         <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
         <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
+        <!-- 个人名片 -->
+        <div v-else-if="messageInfo.msg_type === 'card'" class="message-box contact-card-box">
+            <div class="corp-name">{{ messageInfo?.raw_content?.corpname || '--' }}</div>
+            <div class="user-name">{{ messageInfo?.raw_content?.userid || '--' }}</div>
+        </div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
             <a-tooltip v-if="messageInfo.file_is_remove" title="图片已清除">
@@ -428,6 +433,26 @@ const showBuyFileStorage = () => {
     &.mixed-message-box {
         min-width: 220px;
         padding: 4px 12px;
+    }
+
+    &.contact-card-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 14px 16px;
+
+        .corp-name {
+            color: #262626;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 26px;
+        }
+
+        .user-name {
+            margin-top: 2px;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
     }
 
     &.voice {
