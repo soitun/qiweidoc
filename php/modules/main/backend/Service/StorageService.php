@@ -12,6 +12,33 @@ use Throwable;
 
 class StorageService
 {
+    public static function hasAvailableStorage(string $hash): bool
+    {
+        return self::findAvailableStorage($hash) !== null;
+    }
+
+    private static function findAvailableStorage(string $hash): ?StorageModel
+    {
+        $storages = StorageModel::query()
+            ->where(['hash' => strtolower($hash)])
+            ->orderBy(['id' => SORT_DESC])
+            ->getAll();
+
+        foreach ($storages as $storage) {
+            /** @var StorageModel $storage */
+            if (!$storage->get('is_deleted_local')) {
+                return $storage;
+            }
+            if (!empty($storage->get('cloud_storage_object_key'))
+                && CloudStorageSettingModel::query()->where(['id' => $storage->get('cloud_storage_setting_id')])->exists()
+            ) {
+                return $storage;
+            }
+        }
+
+        return null;
+    }
+
     /**
      * 生成对象键
      */
@@ -208,7 +235,7 @@ class StorageService
      */
     public static function getDownloadUrl(string $hash): string
     {
-        $storage = StorageModel::query()->where(['hash' => $hash])->orderBy(['id' => SORT_DESC])->getOne();
+        $storage = self::findAvailableStorage($hash);
         if (empty($storage)) {
             return "";
         }

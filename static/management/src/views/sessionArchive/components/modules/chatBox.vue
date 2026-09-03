@@ -69,8 +69,31 @@
                         <StaffPaymentTag :type="2">语音</StaffPaymentTag>
                         </a-radio-button>
                         <a-radio-button value="video">视频</a-radio-button>
-                        <a-radio-button v-if="sessionType === 'session'" value="voiptext">音视频通话</a-radio-button>
                     </a-radio-group>
+                    <a-dropdown
+                        v-model:open="moreMsgTypeOpen"
+                        :trigger="['click']"
+                        placement="bottomRight">
+                        <a-button
+                            size="small"
+                            :class="['more-msg-type', {active: isMoreMsgTypeSelected || moreMsgTypeOpen}]">
+                            {{ moreMsgTypeLabel }}
+                            <DownOutlined/>
+                        </a-button>
+                        <template #overlay>
+                            <div class="more-msg-type-panel">
+                                <button
+                                    v-for="item in MORE_MSG_TYPES"
+                                    :key="item.value"
+                                    :class="['more-msg-type-option', {active: filterData.msg_type === item.value}]"
+                                    type="button"
+                                    @click="selectMoreMsgType(item.value)">
+                                    <component :is="item.icon" class="type-icon"/>
+                                    <span>{{ item.label }}</span>
+                                </button>
+                            </div>
+                        </template>
+                    </a-dropdown>
                     <a-range-picker
                         class="ml8"
                         v-model:value="filterData.dates"
@@ -189,7 +212,23 @@ import {onMounted, ref, reactive, nextTick, computed} from 'vue';
 import {useStore} from 'vuex';
 import {useRouter} from 'vue-router';
 import dayjs from 'dayjs';
-import {DownloadOutlined, EditOutlined} from '@ant-design/icons-vue';
+import {
+    ApartmentOutlined,
+    AppstoreOutlined,
+    CheckSquareOutlined,
+    CloseSquareOutlined,
+    CloudServerOutlined,
+    DownOutlined,
+    DownloadOutlined,
+    EditOutlined,
+    EnvironmentOutlined,
+    GiftOutlined,
+    IdcardOutlined,
+    LinkOutlined,
+    PhoneOutlined,
+    VideoCameraAddOutlined,
+    VideoCameraOutlined,
+} from '@ant-design/icons-vue';
 import ZmScroll from "@/components/zmScroll.vue";
 import ChatUser from "@/views/sessionArchive/components/modules/childs/chatUser.vue";
 import ChatCollection from './childs/chatCollection.vue';
@@ -263,6 +302,31 @@ const filterData = reactive({
     msg_type: 'all',
     dates: []
 })
+const MORE_MSG_TYPES = computed(() => [
+    ...(props.sessionType === 'session'
+        ? [{value: 'voiptext', label: '音视频通话', icon: PhoneOutlined}]
+        : []),
+    {value: 'weapp', label: '小程序', icon: AppstoreOutlined},
+    {value: 'link', label: '链接', icon: LinkOutlined},
+    {value: 'sphfeed', label: '视频号', icon: VideoCameraOutlined},
+    {value: 'redpacket', label: '红包', icon: GiftOutlined},
+    {value: 'external_redpacket', label: '互通红包', icon: GiftOutlined},
+    {value: 'meeting', label: '会议邀请', icon: VideoCameraAddOutlined},
+    {value: 'card', label: '名片', icon: IdcardOutlined},
+    {value: 'location', label: '位置', icon: EnvironmentOutlined},
+    {value: 'todo', label: '待办消息', icon: CheckSquareOutlined},
+    {value: 'vote', label: '投票消息', icon: CheckSquareOutlined},
+    {value: 'mixed', label: '混合消息', icon: ApartmentOutlined},
+    {value: 'qydiskfile', label: '微盘文件', icon: CloudServerOutlined},
+    {value: 'agree', label: '同意存档', icon: CheckSquareOutlined},
+    {value: 'disagree', label: '拒绝存档', icon: CloseSquareOutlined},
+])
+const moreMsgTypeOpen = ref(false)
+const selectedMoreMsgType = ref('')
+const moreMsgTypeLabel = computed(() => {
+    return MORE_MSG_TYPES.value.find(item => item.value === selectedMoreMsgType.value)?.label || '更多'
+})
+const isMoreMsgTypeSelected = computed(() => filterData.msg_type === selectedMoreMsgType.value && !!selectedMoreMsgType.value)
 
 // 导出相关数据
 const exportLoading = ref(false)
@@ -453,6 +517,14 @@ function filterMsgTypeChange() {
     init()
 }
 
+function selectMoreMsgType(key) {
+    moreMsgTypeOpen.value = false
+    selectedMoreMsgType.value = key
+    filterData.msg_type = key
+    filterData.keyword = ''
+    init()
+}
+
 function playVoice(message) {
     play(message.msg_id, message.msg_content)
 }
@@ -639,6 +711,19 @@ const handleGoToDownload = () => {
                     color: #1677ff;
                 }
             }
+
+            .more-msg-type {
+                margin-left: -1px;
+                border-radius: 0 2px 2px 0;
+                color: #595959;
+                font-size: 12px;
+
+                &.active {
+                    z-index: 1;
+                    border-color: #1677ff;
+                    color: #1677ff;
+                }
+            }
         }
     }
 
@@ -757,6 +842,54 @@ const handleGoToDownload = () => {
 .text-scroll {
     animation: scroll-left 80s linear infinite;
     animation-play-state: running;
+}
+</style>
+
+<style lang="less">
+.more-msg-type-panel {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 4px 24px;
+    box-sizing: border-box;
+    width: 636px;
+    max-width: calc(100vw - 32px);
+    padding: 16px 24px;
+    border-radius: 16px;
+    background: #FFFFFF;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+
+    .more-msg-type-option {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        height: 42px;
+        padding: 0 10px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #262626;
+        font-size: 16px;
+        line-height: 22px;
+        text-align: left;
+        cursor: pointer;
+        transition: background-color 0.2s, color 0.2s;
+
+        &:hover,
+        &.active {
+            background: #E6F4FF;
+            color: #1677FF;
+        }
+
+        &:focus-visible {
+            outline: 2px solid #91CAFF;
+            outline-offset: 1px;
+        }
+
+        .type-icon {
+            flex: 0 0 auto;
+            font-size: 16px;
+        }
+    }
 }
 </style>
 

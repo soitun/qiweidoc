@@ -274,17 +274,24 @@ export const MessageTypeTextMap = {
     meeting_voice_call: "语音通话",
     mixed: "混合消息",
     news: "图文消息",
-    card: "卡片消息",
+    card: "名片消息",
     location: "地址消息",
     weapp: "小程序",
     chatrecord: "消息转发",
+    todo: "待办消息",
+    vote: "投票消息",
     collect: "表单消息",
     redpacket: "红包消息",
     meeting: "会议消息",
+    meeting_notification: "会议控制消息",
     docmsg: "在线文档",
     markdown: "markdown消息",
     calendar: "日历消息",
     external_redpacket: "企业互通红包",
+    sphfeed: "视频号消息",
+    qydiskfile: "微盘文件",
+    solitaire: "接龙消息",
+    note: "笔记消息",
 }
 
 //1 普通红包、2 拼手气群红包、3 激励群红包
@@ -407,6 +414,50 @@ export const jsonDecode = (jsonStr, nullval = {}) => {
         console.warn("jsonDecode error:", e)
         return nullval
     }
+}
+
+/**
+ * 获取笔记的标题和正文。
+ * 新消息由后端提供 msg_content；旧消息兼容从 raw_content.items 解析。
+ */
+export const getNoteDisplayContent = (messageInfo = {}) => {
+    let text = typeof messageInfo.msg_content === 'string' ? messageInfo.msg_content : ''
+    const rawContent = typeof messageInfo.raw_content === 'string'
+        ? jsonDecode(messageInfo.raw_content, {})
+        : (messageInfo.raw_content || {})
+
+    if (!text && Array.isArray(rawContent.items)) {
+        text = rawContent.items
+            .filter(item => item && item.msg_type === 'text')
+            .map(item => {
+                const content = typeof item.content === 'string'
+                    ? jsonDecode(item.content, {})
+                    : (item.content || {})
+                return typeof content.content === 'string' ? content.content : ''
+            })
+            .filter(Boolean)
+            .join('\n')
+    }
+
+    const lines = text.trim().replace(/\r\n?/g, '\n').split('\n')
+    return {
+        title: lines.shift() || '笔记',
+        description: lines.join('\n').trim(),
+    }
+}
+
+/**
+ * 获取接龙正文，兼容新消息字段和历史消息的原始内容。
+ */
+export const getSolitaireDisplayContent = (messageInfo = {}) => {
+    if (typeof messageInfo.msg_content === 'string' && messageInfo.msg_content) {
+        return messageInfo.msg_content
+    }
+
+    const rawContent = typeof messageInfo.raw_content === 'string'
+        ? jsonDecode(messageInfo.raw_content, {})
+        : (messageInfo.raw_content || {})
+    return typeof rawContent.solitaire_content === 'string' ? rawContent.solitaire_content : ''
 }
 
 export const checkVersionCompatible = (version, versionStack) => {

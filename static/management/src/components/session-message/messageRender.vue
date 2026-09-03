@@ -2,6 +2,29 @@
     <div :class="{isSelf: isSelf}">
         <!--文本-->
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
+        <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
+        <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
+        <!-- 笔记 -->
+        <div v-else-if="messageInfo.msg_type === 'note'" class="message-box note-message-box">
+            <div class="note-content">
+                <div class="note-title">{{ noteContent.title }}</div>
+                <div v-if="noteContent.description" class="note-description">{{ noteContent.description }}</div>
+            </div>
+            <div class="note-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 接龙 -->
+        <div v-else-if="messageInfo.msg_type === 'solitaire'" class="message-box solitaire-message-box">
+            <div class="solitaire-content">{{ solitaireContent || '--' }}</div>
+            <div class="solitaire-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 个人名片 -->
+        <div v-else-if="messageInfo.msg_type === 'card'" class="message-box contact-card-box">
+            <div class="contact-card-content">
+                <div class="corp-name">{{ messageInfo?.raw_content?.corpname || '--' }}</div>
+                <div class="user-name">{{ messageInfo?.raw_content?.userid || '--' }}</div>
+            </div>
+            <div class="contact-card-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
             <a-tooltip v-if="messageInfo.file_is_remove" title="图片已清除">
@@ -20,12 +43,55 @@
                 <div class="msg-link-avatar">
                     <img :src="messageInfo?.raw_content?.image_url" alt="">
                 </div>
-                <div class="msg-link-title">{{ messageInfo.raw_content.title }}</div>
+                <div class="msg-link-text">
+                    <div class="msg-link-title">{{ messageInfo?.raw_content?.title }}</div>
+                    <div v-if="messageInfo?.raw_content?.description" class="msg-link-description">
+                        {{ messageInfo.raw_content.description }}
+                    </div>
+                </div>
             </div>
             <a class="bottom msg-link-bottom" target="_blank" :href="messageInfo.raw_content.link_url">
-               <span class="msg-link-info">详情</span>
+               <span class="msg-link-info">{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
                <RightOutlined class="msg-link-icon icon-14"/>
             </a>
+        </div>
+        <!-- 位置 -->
+        <div v-else-if="messageInfo.msg_type === 'location'" class="message-box msg-location-box">
+            <div class="msg-location-content">
+                <div class="msg-location-title" :title="messageInfo?.raw_content?.title">
+                    {{ messageInfo?.raw_content?.title || '--' }}
+                </div>
+                <div class="msg-location-address" :title="messageInfo?.raw_content?.address">
+                    {{ messageInfo?.raw_content?.address || '--' }}
+                </div>
+            </div>
+            <div class="msg-location-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 待办 -->
+        <div v-else-if="messageInfo.msg_type === 'todo'" class="message-box msg-todo-box">
+            <div class="msg-todo-content">
+                <div class="msg-todo-title" :title="messageInfo?.raw_content?.title">
+                    {{ messageInfo?.raw_content?.title || '--' }}
+                </div>
+                <div class="msg-todo-description">{{ messageInfo?.raw_content?.content || '--' }}</div>
+            </div>
+            <div class="msg-todo-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 会议 -->
+        <div v-else-if="messageInfo.msg_type === 'meeting'" class="message-box msg-meeting-box">
+            <div class="msg-meeting-content">
+                <div class="msg-meeting-topic" :title="messageInfo?.raw_content?.topic">
+                    {{ messageInfo?.raw_content?.topic || '--' }}
+                </div>
+                <div class="msg-meeting-time">
+                    {{ formatMeetingTime(messageInfo?.raw_content?.starttime, messageInfo?.raw_content?.endtime) }}
+                </div>
+            </div>
+            <div class="msg-meeting-address" :title="messageInfo?.raw_content?.address">
+                <span class="label">地点</span>
+                <span class="value">{{ messageInfo?.raw_content?.address || '--' }}</span>
+            </div>
+            <div class="msg-meeting-bottom">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
         </div>
         <!-- 视频 -->
         <div v-else-if="messageInfo.msg_type == 'video'" class="message-box video-box">
@@ -154,7 +220,7 @@
                共 {{ messageInfo?.raw_content?.item.length }} 条消息
            </div>
            <div class="bottom zm-flex-between zm-tip-info" @click="onShowMessage(messageInfo?.raw_content?.item, messageInfo?.raw_content?.title)">
-               <span>详情</span>
+               <span>{{ MessageTypeTextMap[messageInfo.msg_type] }}</span>
                <RightOutlined class="icon-14"/>
            </div>
        </div>
@@ -168,7 +234,29 @@
             <div class="description">{{ messageInfo?.raw_content?.title }}</div>
           </div>
        </div>
+       <!-- 视频号 -->
+       <div v-else-if="messageInfo.msg_type == 'sphfeed'" class="message-box msg-weapp-box">
+          <div class="msg-weapp-avatar">
+            <img src="@/assets/image/sphfeed-icon.png" alt="视频号">
+          </div>
+          <div class="msg-weapp-content">
+            <div class="title">{{ messageInfo?.raw_content?.sph_name }}</div>
+            <div class="description">{{ messageInfo?.raw_content?.feed_desc }}</div>
+          </div>
+       </div>
         <!-- 混合消息 -->
+        <div v-else-if="messageInfo.msg_type == 'mixed'" class="message-box mixed-message-box">
+            <template v-if="messageInfo?.raw_content?.item?.length">
+                <ChatRecordItem
+                    v-for="(item, index) in messageInfo.raw_content.item"
+                    :key="index"
+                    :item="item"
+                    compact
+                    @show-message="onShowMessage"
+                />
+            </template>
+            <span v-else>[混合消息]</span>
+        </div>
         <div v-else class="message-box">[{{ MessageTypeTextMap[messageInfo.msg_type] }}]</div>
         <span v-if="messageInfo.is_revoke" class="message-box" style="color: rgba(0,0,0,.25);">已撤回</span>
 
@@ -192,11 +280,12 @@ import {
     getFileIcon,
     MessageTypeTextMap,
     RedpacketTypeMap,
-    copyObj, getPluginRouteParams
+    copyObj, getPluginRouteParams, getNoteDisplayContent, getSolitaireDisplayContent
 } from "@/utils/tools";
 import BenzAMRRecorder from 'benz-amr-recorder';
 import {formatPrice} from "@/utils/tools";
 import MessageList from './messageList.vue'
+import ChatRecordItem from './chatRecordItem.vue'
 
 const messageListRef = ref(null)
 const props = defineProps({
@@ -222,6 +311,8 @@ const router = useRouter()
 const store = useStore()
 const amrPlayer = ref(null)
 const totalStorage = ref(10)
+const noteContent = computed(() => getNoteDisplayContent(props.messageInfo))
+const solitaireContent = computed(() => getSolitaireDisplayContent(props.messageInfo))
 
 const archiveStfModule = computed(() => {
     return store.getters.getArchiveStfInfo || {}
@@ -310,7 +401,7 @@ const playingVideo = (msg) => {
 }
 
 const getTotalStorageSizeTitle = () => {
-    return "当前文件存储已超过" + totalStorage + "G，无法下载"
+    return "当前文件存储已超过" + totalStorage.value + "G，无法下载"
 }
 
 const downloadMsgFile = () => {
@@ -343,6 +434,16 @@ const showFileSize = size => {
         return ''
     }
     return formatBytes(size)
+}
+
+const formatMeetingTime = (startTimestamp, endTimestamp) => {
+    const start = dayjs(Number(startTimestamp) * 1000)
+    const end = dayjs(Number(endTimestamp) * 1000)
+    if (!startTimestamp || !endTimestamp || !start.isValid() || !end.isValid()) {
+        return '--'
+    }
+    const todayText = start.isSame(dayjs(), 'day') ? '今天 ' : ''
+    return `${todayText}${start.format('M月D日 HH:mm')} - ${end.format('HH:mm')}`
 }
 
 const showBuyFileStorage = () => {
@@ -408,6 +509,99 @@ const showBuyFileStorage = () => {
 
     &.text {
         display: inline-block;
+    }
+
+    &.mixed-message-box {
+        min-width: 220px;
+        padding: 4px 12px;
+    }
+
+    &.note-message-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 0;
+
+        .note-content {
+            padding: 12px 16px;
+        }
+
+        .note-title {
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+        }
+
+        .note-description {
+            margin-top: 4px;
+            color: #9A9AA1;
+            font-size: 14px;
+            line-height: 22px;
+            white-space: pre-wrap;
+        }
+
+        .note-type {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
+
+    &.solitaire-message-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 0;
+
+        .solitaire-content {
+            padding: 12px 16px;
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .solitaire-type {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
+
+    &.contact-card-box {
+        box-sizing: border-box;
+        width: 240px;
+        padding: 0;
+        overflow: hidden;
+
+        .contact-card-content {
+            padding: 14px 16px;
+        }
+
+        .corp-name {
+            color: #262626;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 26px;
+        }
+
+        .user-name {
+            margin-top: 2px;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .contact-card-bottom {
+            padding: 8px 16px;
+            border-top: 1px solid #D9D9D9;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
     }
 
     &.voice {
@@ -518,6 +712,7 @@ const showBuyFileStorage = () => {
             padding: 12px;
 
             .msg-link-avatar {
+                flex-shrink: 0;
                 width: 48px;
                 height: 48px;
                 border-radius: 4px;
@@ -529,18 +724,34 @@ const showBuyFileStorage = () => {
                 }
             }
 
-            .msg-link-title {
+            .msg-link-text {
+                min-width: 0;
+                flex: 1;
+            }
+
+            .msg-link-title,
+            .msg-link-description {
                 display: -webkit-box;
                 width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;
                 overflow: hidden;
-                color: #262626;
                 text-overflow: ellipsis;
-                font-size: 14px;
                 font-style: normal;
                 font-weight: 400;
+            }
+
+            .msg-link-title {
+                color: #262626;
+                font-size: 14px;
                 line-height: 22px;
+            }
+
+            .msg-link-description {
+                margin-top: 2px;
+                color: #8c8c8c;
+                font-size: 12px;
+                line-height: 20px;
             }
         }
 
@@ -570,7 +781,153 @@ const showBuyFileStorage = () => {
             color: #8c8c8c;
         }
     }
+    &.msg-location-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-location-content {
+            padding: 12px;
+        }
+
+        .msg-location-title,
+        .msg-location-address {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-location-title {
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .msg-location-address {
+            margin-top: 4px;
+            color: #8c8c8c;
+            font-size: 12px;
+            line-height: 20px;
+        }
+
+        .msg-location-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
+    &.msg-meeting-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-meeting-content {
+            padding: 12px;
+            background: linear-gradient(135deg, #f4f8ff 0%, #eaf3ff 100%);
+        }
+
+        .msg-meeting-topic,
+        .msg-meeting-time,
+        .msg-meeting-address .value {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-meeting-topic {
+            color: #262626;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+        }
+
+        .msg-meeting-time {
+            margin-top: 4px;
+            color: #262626;
+            font-size: 14px;
+            line-height: 22px;
+        }
+
+        .msg-meeting-address {
+            display: flex;
+            padding: 10px 12px;
+            font-size: 14px;
+            line-height: 22px;
+
+            .label {
+                flex-shrink: 0;
+                margin-right: 12px;
+                color: #8c8c8c;
+            }
+
+            .value {
+                min-width: 0;
+                color: #595959;
+            }
+        }
+
+        .msg-meeting-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8c8c8c;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
+    &.msg-todo-box {
+        box-sizing: border-box;
+        width: 280px;
+        padding: 0;
+        overflow: hidden;
+        border-radius: 6px;
+        border: 1px solid #F0F0F0;
+        background: #FFF;
+
+        .msg-todo-content {
+            padding: 12px;
+        }
+
+        .msg-todo-title {
+            overflow: hidden;
+            color: #262626;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 24px;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .msg-todo-description {
+            margin-top: 4px;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+            overflow-wrap: anywhere;
+            white-space: pre-line;
+        }
+
+        .msg-todo-bottom {
+            padding: 8px 12px;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 14px;
+            line-height: 22px;
+        }
+    }
     &.msg-weapp-box {
+        box-sizing: border-box;
+        width: 280px;
+        overflow: hidden;
         border-radius: 6px;
         border: 1px solid #F0F0F0;
         background: #FFF;
@@ -578,8 +935,10 @@ const showBuyFileStorage = () => {
         gap: 12px;
 
         .msg-weapp-avatar {
+            flex-shrink: 0;
             width: 48px;
             height: 48px;
+            overflow: hidden;
             border-radius: 4px;
 
             img {
@@ -591,11 +950,14 @@ const showBuyFileStorage = () => {
 
         .msg-weapp-content {
             display: flex;
+            min-width: 0;
+            flex: 1;
             flex-direction: column;
             gap: 4px;
 
             .title {
                 display: -webkit-box;
+                width: 100%;
                 max-width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;
@@ -611,6 +973,7 @@ const showBuyFileStorage = () => {
 
             .description {
                 display: -webkit-box;
+                width: 100%;
                 max-width: 100%;
                 -webkit-box-orient: vertical;
                 -webkit-line-clamp: 1;

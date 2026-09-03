@@ -2,6 +2,26 @@
     <div :class="{isSelf: isSelf}">
         <!--文本-->
         <div v-if="messageInfo.msg_type === 'text'" class="message-box text">{{ messageInfo.msg_content }}</div>
+        <div v-else-if="messageInfo.msg_type === 'agree'" class="message-box">对方同意会话内容存档</div>
+        <div v-else-if="messageInfo.msg_type === 'disagree'" class="message-box">对方不同意会话内容存档，你将无法继续提供服务</div>
+        <!-- 笔记 -->
+        <div v-else-if="messageInfo.msg_type === 'note'" class="message-box note-message-box">
+            <div class="note-content">
+                <div class="note-title">{{ noteContent.title }}</div>
+                <div v-if="noteContent.description" class="note-description">{{ noteContent.description }}</div>
+            </div>
+            <div class="note-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 接龙 -->
+        <div v-else-if="messageInfo.msg_type === 'solitaire'" class="message-box solitaire-message-box">
+            <div class="solitaire-content">{{ solitaireContent || '--' }}</div>
+            <div class="solitaire-type">{{ MessageTypeTextMap[messageInfo.msg_type] }}</div>
+        </div>
+        <!-- 个人名片 -->
+        <div v-else-if="messageInfo.msg_type === 'card'" class="message-box contact-card-box">
+            <div class="corp-name">{{ messageInfo?.raw_content?.corpname || '--' }}</div>
+            <div class="user-name">{{ messageInfo?.raw_content?.userid || '--' }}</div>
+        </div>
         <!--图片-->
         <template v-else-if="messageInfo.msg_type === 'image' || messageInfo.msg_type === 'emotion'">
             <a-tooltip v-if="messageInfo.file_is_remove" title="图片已清除">
@@ -98,7 +118,8 @@
             </div>
         </div>
         <!-- 红包消息-->
-        <div v-else-if="messageInfo.msg_type == 'external_redpacket'" class="message-box red-envelope-box">
+        <div v-else-if="['external_redpacket', 'redpacket'].includes(messageInfo.msg_type)"
+             class="message-box red-envelope-box">
             <div class="zm-flex-center">
                 <img class="cover" src="@/assets/image/session/red-envelope-cover.png"/>
                 <div class="ml8">
@@ -113,6 +134,18 @@
             </div>
         </div>
         <!-- 混合消息 -->
+        <div v-else-if="messageInfo.msg_type == 'mixed'" class="message-box mixed-message-box">
+            <template v-if="messageInfo?.raw_content?.item?.length">
+                <ChatRecordItem
+                    v-for="(item, index) in messageInfo.raw_content.item"
+                    :key="index"
+                    :item="item"
+                    :allow-open="false"
+                    compact
+                />
+            </template>
+            <span v-else>[混合消息]</span>
+        </div>
         <div v-else class="message-box">[{{ MessageTypeTextMap[messageInfo.msg_type] }}]</div>
         <span v-if="messageInfo.is_revoke" class="message-box" style="color: rgba(0,0,0,.25);">已撤回</span>
     </div>
@@ -131,9 +164,12 @@ import {
     getFileIcon,
     formatPrice,
     MessageTypeTextMap,
-    RedpacketTypeMap
+    RedpacketTypeMap,
+    getNoteDisplayContent,
+    getSolitaireDisplayContent
 } from "@/utils/tools";
 import BenzAMRRecorder from 'benz-amr-recorder';
+import ChatRecordItem from './chatRecordItem.vue';
 
 const props = defineProps({
     messageInfo: {
@@ -156,6 +192,8 @@ const props = defineProps({
 const emit = defineEmits(['playVoice'])
 const amrPlayer = ref(null)
 const totalStorage = ref(10)
+const noteContent = computed(() => getNoteDisplayContent(props.messageInfo))
+const solitaireContent = computed(() => getSolitaireDisplayContent(props.messageInfo))
 
 const getVoiceCallDuration = computed(() => {
     const msg = props.messageInfo
@@ -274,6 +312,81 @@ const showBuyFileStorage = () => {
 
     &.text {
         display: inline-block;
+    }
+
+    &.note-message-box {
+        box-sizing: border-box;
+        width: 24rem;
+        padding: 0;
+
+        .note-content {
+            padding: 1.2rem 1.6rem;
+        }
+
+        .note-title {
+            font-size: 1.6rem;
+            font-weight: 500;
+            line-height: 2.4rem;
+        }
+
+        .note-description {
+            margin-top: .4rem;
+            color: #9A9AA1;
+            font-size: 1.4rem;
+            line-height: 2.2rem;
+            white-space: pre-wrap;
+        }
+
+        .note-type {
+            padding: .8rem 1.6rem;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 1.4rem;
+            line-height: 2.2rem;
+        }
+    }
+
+    &.solitaire-message-box {
+        box-sizing: border-box;
+        width: 24rem;
+        padding: 0;
+
+        .solitaire-content {
+            padding: 1.2rem 1.6rem;
+            color: #262626;
+            font-size: 1.4rem;
+            line-height: 2.2rem;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+
+        .solitaire-type {
+            padding: .8rem 1.6rem;
+            border-top: 1px solid #D9D9D9;
+            color: #8C8C8C;
+            font-size: 1.4rem;
+            line-height: 2.2rem;
+        }
+    }
+
+    &.contact-card-box {
+        box-sizing: border-box;
+        width: 24rem;
+        padding: 1.4rem 1.6rem;
+
+        .corp-name {
+            color: #262626;
+            font-size: 1.8rem;
+            font-weight: 500;
+            line-height: 2.6rem;
+        }
+
+        .user-name {
+            margin-top: .2rem;
+            color: #8c8c8c;
+            font-size: 1.4rem;
+            line-height: 2.2rem;
+        }
     }
 
     &.voice {
